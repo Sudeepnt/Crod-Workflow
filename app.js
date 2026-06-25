@@ -153,85 +153,85 @@ const tables = [
 
 const data = {
   ventures: [
-    { id: "ven_1", name: "ATit Capital", date: "2026-06-01", type: "Self", status: "Active", verticals: ["Capital", "Operations"], entity_form: "PvtLtd", primary_contact: "Amit Shah" },
-    { id: "ven_2", name: "Aster Park SPV", date: "2026-06-03", type: "SPV", status: "Active", verticals: ["Real Estate"], entity_form: "LLP", primary_contact: "Nina Mehta" },
-    { id: "ven_3", name: "Northline Client Co", date: "2026-06-07", type: "Client", status: "Active", verticals: ["Leasing"], entity_form: "PvtLtd", primary_contact: "Rohan Jain" },
-    { id: "ven_4", name: "Greenfield Vendor", date: "2026-06-11", type: "Vendor", status: "Prospect", verticals: ["Operations"], entity_form: "Proprietorship", primary_contact: "Karan Rao" },
+    { id: "ven_1", name: "ATIT", date: "2026-06-02", type: "Self", status: "Active", verticals: ["Capital", "Operations"], entity_form: "PvtLtd", primary_contact: "Dev Malik", reg_no: "U70100KA2020PTC441210", tags: ["core", "hq"] },
+    { id: "ven_2", name: "Cedar Ridge SPV", date: "2026-06-05", type: "SPV", status: "Active", verticals: ["Real Estate"], entity_form: "LLP", primary_contact: "Ishita Rao", reg_no: "AAT-8821", tags: ["fitout"] },
+    { id: "ven_3", name: "Meridian Foods Client", date: "2026-06-08", type: "Client", status: "Active", verticals: ["Leasing", "Logistics"], entity_form: "PvtLtd", primary_contact: "Kavya Menon", reg_no: "U55101MH2018PTC210991", tags: ["retail"] },
+    { id: "ven_4", name: "Bluepeak Works", date: "2026-06-12", type: "Vendor", status: "Prospect", verticals: ["Operations"], entity_form: "Proprietorship", primary_contact: "Farhan Ali", reg_no: "GST29BPW7211Q1Z2", tags: ["field"] },
   ],
   people: [
-    { id: "peo_1", name: "Amit Shah", type: ["Founder"], email: "amit@atit.com", venture: "ATit Capital", role_title: "Founder", access_level: "Founder", status: "Active" },
-    { id: "peo_2", name: "Nina Mehta", type: ["Employee"], email: "nina@atit.com", venture: "ATit Capital", role_title: "Operations Lead", access_level: "Employee", status: "Active" },
-    { id: "peo_3", name: "Rohan Jain", type: ["Partner"], email: "rohan@northline.com", venture: "Northline Client Co", role_title: "Client Partner", access_level: "Partner", status: "Active" },
-    { id: "peo_4", name: "Karan Rao", type: ["Contractor"], email: "karan@vendor.com", venture: "Greenfield Vendor", role_title: "Field Contractor", access_level: "Contractor", status: "Active" },
-    { id: "peo_5", name: "Sonal Verma", type: ["Employee"], email: "sonal@atit.com", venture: "ATit Capital", role_title: "Legal Coordinator", access_level: "Employee", status: "Active" },
-    { id: "peo_6", name: "Priya Nair", type: ["Client"], email: "priya@northline.com", venture: "Northline Client Co", role_title: "Client Director", access_level: "Client", status: "Active" },
+    { id: "peo_1", name: "Dev Malik", type: ["Founder"], email: "dev@atit.com", phone: "+91-90000-11001", venture: "ATIT", role_title: "Founder", access_level: "Founder", status: "Active" },
+    { id: "peo_2", name: "Ishita Rao", type: ["Employee"], email: "ishita@cedarridge.com", phone: "+91-90000-11002", venture: "Cedar Ridge SPV", role_title: "Site Lead", access_level: "Employee", status: "Active" },
+    { id: "peo_3", name: "Kavya Menon", type: ["Partner"], email: "kavya@meridian.com", phone: "+91-90000-11003", venture: "Meridian Foods Client", role_title: "Expansion Partner", access_level: "Partner", status: "Active" },
+    { id: "peo_4", name: "Farhan Ali", type: ["Contractor"], email: "farhan@bluepeak.com", phone: "+91-90000-11004", venture: "Bluepeak Works", role_title: "Mobilisation Lead", access_level: "Contractor", status: "Active" },
+    { id: "peo_5", name: "Meera Sethi", type: ["Employee"], email: "meera@atit.com", phone: "+91-90000-11005", venture: "ATIT", role_title: "Operations Manager", access_level: "Employee", status: "Active" },
+    { id: "peo_6", name: "Nikhil Bansal", type: ["Client"], email: "nikhil@meridian.com", phone: "+91-90000-11006", venture: "Meridian Foods Client", role_title: "Portfolio Head", access_level: "Client", status: "Active" },
   ],
   projects: [
-    { id: "prj_1", name: "Aster Park Leasing", venture: "Aster Park SPV", vertical: "Leasing", type: "Leasing", stage: "Execution", status: "Active", lead: "Nina Mehta", target_date: "2026-07-15", client_shareable: true },
-    { id: "prj_2", name: "Northline BizDev", venture: "Northline Client Co", vertical: "Capital", type: "Internal", stage: "Scoping", status: "Active", lead: "Amit Shah", target_date: "2026-07-21", client_shareable: false },
-    { id: "prj_3", name: "ATit Internal Ops", venture: "ATit Capital", vertical: "Operations", type: "Internal", stage: "Delivery", status: "Blocked", lead: "Nina Mehta", target_date: "2026-07-30", client_shareable: false },
-    { id: "prj_4", name: "Vendor Compliance Setup", venture: "Greenfield Vendor", vertical: "Operations", type: "Internal", stage: "Execution", status: "Active", lead: "Karan Rao", target_date: "2026-07-18", client_shareable: false },
-    { id: "prj_5", name: "Northline Renewal Pack", venture: "Northline Client Co", vertical: "Leasing", type: "Leasing", stage: "Execution", status: "Active", lead: "Rohan Jain", target_date: "2026-07-25", client_shareable: true },
+    { id: "prj_1", name: "Cedar Ridge Fitout", venture: "Cedar Ridge SPV", vertical: "Real Estate", type: "Development", stage: "Execution", status: "Active", lead: "Ishita Rao", target_date: "2026-07-19", client_shareable: true },
+    { id: "prj_2", name: "Meridian Rollout", venture: "Meridian Foods Client", vertical: "Logistics", type: "Internal", stage: "Scoping", status: "Active", lead: "Dev Malik", target_date: "2026-07-23", client_shareable: false },
+    { id: "prj_3", name: "ATIT Control Desk", venture: "ATIT", vertical: "Operations", type: "Internal", stage: "Delivery", status: "Blocked", lead: "Meera Sethi", target_date: "2026-07-31", client_shareable: false },
+    { id: "prj_4", name: "Bluepeak Mobilisation", venture: "Bluepeak Works", vertical: "Operations", type: "Internal", stage: "Execution", status: "Active", lead: "Farhan Ali", target_date: "2026-07-21", client_shareable: false },
+    { id: "prj_5", name: "Meridian Renewal Window", venture: "Meridian Foods Client", vertical: "Leasing", type: "Leasing", stage: "Execution", status: "Active", lead: "Kavya Menon", target_date: "2026-07-28", client_shareable: true },
   ],
   tasks: [
-    { id: "tsk_1", title: "Collect signed lease draft", project: "Aster Park Leasing", parent_task: null, status: "In-Progress", priority: "High", owner: "Nina Mehta", external_shared_with: "Sonal Verma", due_date: "2026-06-27" },
-    { id: "tsk_2", title: "Verify title documents", project: "Aster Park Leasing", parent_task: null, status: "To-Do", priority: "Critical", owner: "Amit Shah", external_shared_with: "Karan Rao", due_date: "2026-06-26" },
-    { id: "tsk_3", title: "Prepare client status note", project: "Northline BizDev", parent_task: null, status: "Blocked", priority: "Medium", owner: "Nina Mehta", external_shared_with: "Priya Nair", due_date: "2026-06-28" },
-    { id: "tsk_4", title: "Follow up vendor onboarding", project: "ATit Internal Ops", parent_task: null, status: "Backlog", priority: "Low", owner: "Karan Rao", external_shared_with: "Sonal Verma", due_date: "2026-07-02" },
-    { id: "tsk_5", title: "Review indemnity clause", project: "Aster Park Leasing", parent_task: "Collect signed lease draft", status: "In-Review", priority: "High", owner: "Sonal Verma", external_shared_with: "Nina Mehta", due_date: "2026-06-29" },
-    { id: "tsk_6", title: "Confirm renewal assumptions", project: "Northline Renewal Pack", parent_task: null, status: "To-Do", priority: "Medium", owner: "Rohan Jain", external_shared_with: "Priya Nair", due_date: "2026-07-03" },
-    { id: "tsk_7", title: "Share occupancy numbers", project: "Northline Renewal Pack", parent_task: "Confirm renewal assumptions", status: "Backlog", priority: "Low", owner: "Priya Nair", external_shared_with: "Rohan Jain", due_date: "2026-07-04" },
+    { id: "tsk_1", title: "Mark handover punchlist", project: "Cedar Ridge Fitout", parent_task: null, status: "In-Progress", priority: "High", owner: "Meera Sethi", external_shared_with: "Ishita Rao", due_date: "2026-06-29" },
+    { id: "tsk_2", title: "Collect landlord approvals", project: "Cedar Ridge Fitout", parent_task: null, status: "To-Do", priority: "Critical", owner: "Dev Malik", external_shared_with: "Ishita Rao", due_date: "2026-06-30" },
+    { id: "tsk_3", title: "Draft rollout brief", project: "Meridian Rollout", parent_task: null, status: "Blocked", priority: "Medium", owner: "Meera Sethi", external_shared_with: "Kavya Menon", due_date: "2026-07-01" },
+    { id: "tsk_4", title: "Open vendor checklist", project: "Bluepeak Mobilisation", parent_task: null, status: "Backlog", priority: "Low", owner: "Dev Malik", external_shared_with: "Farhan Ali", due_date: "2026-07-03" },
+    { id: "tsk_5", title: "Review exit language", project: "Cedar Ridge Fitout", parent_task: "Mark handover punchlist", status: "In-Review", priority: "High", owner: "Meera Sethi", external_shared_with: "Ishita Rao", due_date: "2026-07-02" },
+    { id: "tsk_6", title: "Confirm renewal budget", project: "Meridian Renewal Window", parent_task: null, status: "To-Do", priority: "Medium", owner: "Dev Malik", external_shared_with: "Nikhil Bansal", due_date: "2026-07-04" },
+    { id: "tsk_7", title: "Share outlet count", project: "Meridian Renewal Window", parent_task: "Confirm renewal budget", status: "Backlog", priority: "Low", owner: "Meera Sethi", external_shared_with: "Kavya Menon", due_date: "2026-07-05" },
   ],
   documents: [
-    { id: "doc_1", title: "Lease Draft v4", date: "2026-06-14", type: "Agreement", status: "Draft", version: 4, links: ["Aster Park Leasing", "Aster Park SPV", "Nina Mehta", "Sonal Verma"] },
-    { id: "doc_2", title: "Client Status Note", date: "2026-06-18", type: "Note", status: "Final", version: 2, links: ["Northline BizDev", "Northline Client Co", "Rohan Jain"] },
-    { id: "doc_3", title: "Internal Ops Checklist", date: "2026-06-22", type: "Report", status: "Draft", version: 1, links: ["ATit Internal Ops", "ATit Capital", "Amit Shah", "Nina Mehta"] },
-    { id: "doc_4", title: "Vendor KYC Pack", date: "2026-06-24", type: "Report", status: "Draft", version: 1, links: ["Vendor Compliance Setup", "Greenfield Vendor", "Karan Rao"] },
-    { id: "doc_5", title: "Renewal Financial Model", date: "2026-06-25", type: "Model", status: "Draft", version: 1, links: ["Northline Renewal Pack", "Northline Client Co", "Priya Nair", "Rohan Jain"] },
+    { id: "doc_1", title: "Fitout Handover Log", date: "2026-06-15", type: "Agreement", status: "Draft", version: 3, links: ["Cedar Ridge Fitout", "Cedar Ridge SPV", "Ishita Rao", "Farhan Ali"] },
+    { id: "doc_2", title: "Rollout Decision Note", date: "2026-06-19", type: "Note", status: "Final", version: 1, links: ["Meridian Rollout", "Meridian Foods Client", "Dev Malik", "Nikhil Bansal"] },
+    { id: "doc_3", title: "Control Desk Weekly Sheet", date: "2026-06-23", type: "Report", status: "Draft", version: 2, links: ["ATIT Control Desk", "ATIT", "Meera Sethi"] },
+    { id: "doc_4", title: "Bluepeak Onboarding File", date: "2026-06-24", type: "Report", status: "Draft", version: 1, links: ["Bluepeak Mobilisation", "Bluepeak Works", "Farhan Ali"] },
+    { id: "doc_5", title: "Renewal Budget Model", date: "2026-06-26", type: "Model", status: "Draft", version: 1, links: ["Meridian Renewal Window", "Meridian Foods Client", "Nikhil Bansal", "Kavya Menon"] },
   ],
   events: [
-    { id: "evt_1", title: "Lease call with counsel", date: "2026-06-25", type: "Call", start: "2026-06-25 10:00", duration: "20m", project: "Aster Park Leasing", task: "Collect signed lease draft", participants: ["Nina Mehta", "Amit Shah", "Sonal Verma"] },
-    { id: "evt_2", title: "Site visit", date: "2026-06-25", type: "FieldVisit", start: "2026-06-25 13:00", duration: "45m", project: "Aster Park Leasing", task: "Verify title documents", participants: ["Amit Shah", "Karan Rao"] },
-    { id: "evt_3", title: "Partner sync", date: "2026-06-26", type: "Meeting", start: "2026-06-26 09:30", duration: "30m", project: "Northline BizDev", task: "Prepare client status note", participants: ["Rohan Jain", "Nina Mehta", "Priya Nair"] },
-    { id: "evt_4", title: "Vendor onboarding review", date: "2026-06-27", type: "Meeting", start: "2026-06-27 15:00", duration: "30m", project: "Vendor Compliance Setup", task: "Follow up vendor onboarding", participants: ["Karan Rao", "Sonal Verma"] },
-    { id: "evt_5", title: "Renewal assumptions workshop", date: "2026-06-28", type: "Meeting", start: "2026-06-28 11:00", duration: "40m", project: "Northline Renewal Pack", task: "Confirm renewal assumptions", participants: ["Rohan Jain", "Priya Nair", "Amit Shah"] },
+    { id: "evt_1", title: "Snag walk", date: "2026-06-25", type: "FieldVisit", start: "2026-06-25 11:00", duration: "35m", project: "Cedar Ridge Fitout", task: "Mark handover punchlist", participants: ["Ishita Rao", "Farhan Ali"] },
+    { id: "evt_2", title: "Approval call", date: "2026-06-25", type: "Call", start: "2026-06-25 16:00", duration: "25m", project: "Cedar Ridge Fitout", task: "Collect landlord approvals", participants: ["Dev Malik", "Ishita Rao"] },
+    { id: "evt_3", title: "Rollout review huddle", date: "2026-06-26", type: "Meeting", start: "2026-06-26 09:45", duration: "30m", project: "Meridian Rollout", task: "Draft rollout brief", participants: ["Meera Sethi", "Nikhil Bansal", "Dev Malik"] },
+    { id: "evt_4", title: "Vendor kickoff meet", date: "2026-06-27", type: "Meeting", start: "2026-06-27 14:30", duration: "40m", project: "Bluepeak Mobilisation", task: "Open vendor checklist", participants: ["Farhan Ali", "Meera Sethi"] },
+    { id: "evt_5", title: "Renewal number check-in", date: "2026-06-28", type: "Meeting", start: "2026-06-28 10:30", duration: "30m", project: "Meridian Renewal Window", task: "Confirm renewal budget", participants: ["Kavya Menon", "Nikhil Bansal"] },
   ],
   assets: [
-    { id: "ast_1", name: "Aster Park", date: "2026-05-28", type: "Building", status: "Operational", owner_ventures: ["Aster Park SPV"] },
-    { id: "ast_2", name: "Northline Unit 204", date: "2026-06-09", type: "Unit", status: "Under-Development", owner_ventures: ["Northline Client Co"] },
-    { id: "ast_3", name: "Greenfield Logistics Yard", date: "2026-06-15", type: "Land", status: "Under-Acquisition", owner_ventures: ["Greenfield Vendor"] },
+    { id: "ast_1", name: "Cedar Ridge Block A", date: "2026-05-30", type: "Building", status: "Operational", owner_ventures: ["Cedar Ridge SPV"] },
+    { id: "ast_2", name: "Meridian Outlet 12", date: "2026-06-10", type: "Unit", status: "Under-Development", owner_ventures: ["Meridian Foods Client"] },
+    { id: "ast_3", name: "Bluepeak Yard Plot", date: "2026-06-16", type: "Land", status: "Under-Acquisition", owner_ventures: ["Bluepeak Works"] },
   ],
   transactions: [
-    { id: "txn_1", reference: "INV-1042", direction: "Receivable", amount: "₹12,40,000", due_date: "2026-07-05", status: "Raised", venture: "Northline Client Co", documents: ["Renewal Financial Model"] },
-    { id: "txn_2", reference: "PO-221", direction: "Payable", amount: "₹1,25,000", due_date: "2026-07-09", status: "Draft", venture: "ATit Capital", documents: ["Internal Ops Checklist"] },
-    { id: "txn_3", reference: "ADV-778", direction: "Payable", amount: "₹2,80,000", due_date: "2026-07-01", status: "Raised", venture: "Aster Park SPV", documents: ["Lease Draft v4"] },
+    { id: "txn_1", reference: "RCV-311", direction: "Receivable", amount: "₹9,80,000", due_date: "2026-07-06", status: "Raised", venture: "Meridian Foods Client", documents: ["Renewal Budget Model"] },
+    { id: "txn_2", reference: "PAY-088", direction: "Payable", amount: "₹1,75,000", due_date: "2026-07-10", status: "Draft", venture: "ATIT", documents: ["Control Desk Weekly Sheet"] },
+    { id: "txn_3", reference: "ADV-204", direction: "Payable", amount: "₹3,10,000", due_date: "2026-07-02", status: "Raised", venture: "Cedar Ridge SPV", documents: ["Fitout Handover Log"] },
   ],
   roles: {
     Founder: {
       title: "Founder view",
       items: [
-        ["Company health", "2 active projects, 1 blocked project"],
-        ["Critical tasks", "1 overdue, 1 critical due tomorrow"],
-        ["Revenue pipeline", "1 receivable raised, 1 draft payable"],
-        ["Team workload", "3 active owners across 4 people"],
+        ["Portfolio pulse", "3 live initiatives, 1 stalled internal stream"],
+        ["Near-term pressure", "2 items need action inside 72 hours"],
+        ["Cash movement", "1 receivable open, 2 outgoing items pending"],
+        ["Team spread", "6 people working across 4 ventures"],
       ],
     },
     Partner: {
       title: "Partner view",
       items: [
-        ["Scope", "Filtered to partner-linked ventures"],
-        ["Open projects", "1 leasing, 1 client workstream"],
-        ["Risk", "1 blocked project needs follow-up"],
-        ["Docs", "2 shareable files in current scope"],
+        ["Coverage", "Scoped to linked ventures and active mandates"],
+        ["Current lanes", "2 external workstreams need monitoring"],
+        ["Watchlist", "1 delayed item needs escalation"],
+        ["Shared files", "3 current records available in scope"],
       ],
     },
     Employee: {
       title: "Employee view",
       items: [
-        ["My tasks", "2 assigned, 1 in progress"],
-        ["My hours", "45 minutes logged today"],
-        ["My events", "2 meetings and 1 site visit this week"],
-        ["Next action", "Complete signed lease draft follow-up"],
+        ["My queue", "3 open items, 1 already moving"],
+        ["Logged time", "1 hour 10 minutes this week"],
+        ["Upcoming touchpoints", "2 meetings and 1 field visit ahead"],
+        ["Next move", "Clear the blocked rollout brief branch"],
       ],
     },
   },
@@ -242,7 +242,7 @@ const userAccounts = [
     id: "usr_1",
     name: "ATIT Admin",
     email: "admin@atit.com",
-    password: "admin123",
+    password: "atit-admin-01",
     role: "Admin",
     status: "Active",
     venture_scope: "All ventures",
@@ -250,22 +250,22 @@ const userAccounts = [
   },
   {
     id: "usr_2",
-    name: "Amit Shah",
-    email: "amit@atit.com",
-    password: "founder123",
+    name: "Dev Malik",
+    email: "dev@atit.com",
+    password: "atit-founder-01",
     role: "Founder",
     status: "Active",
-    venture_scope: "ATit Capital",
+    venture_scope: "ATIT",
     table_access: ["ventures", "people", "projects", "tasks", "documents", "events", "transactions"],
   },
   {
     id: "usr_3",
-    name: "Nina Mehta",
-    email: "nina@atit.com",
-    password: "ops123",
+    name: "Meera Sethi",
+    email: "meera@atit.com",
+    password: "atit-ops-01",
     role: "Employee",
     status: "Active",
-    venture_scope: "ATit Capital",
+    venture_scope: "ATIT",
     table_access: ["projects", "tasks", "documents", "events", "assets"],
   },
 ];
@@ -785,10 +785,13 @@ function getTreeNodeKey(tableKey, record) {
   return `${tableKey}:${record?.id ?? record?.name ?? record?.title ?? ""}`;
 }
 
-function shouldExpandTreeChildren(rootTableKey, tableKey, depth) {
+function shouldExpandTreeItem(rootTableKey, parentTableKey, depth, childTableKey) {
   if (rootTableKey !== "ventures") return false;
-  if (depth === 0) return true;
-  return depth === 1 && tableKey === "projects";
+  if (depth === 0) return childTableKey === "projects";
+  if (depth === 1 && parentTableKey === "projects") {
+    return ["tasks", "events", "documents"].includes(childTableKey);
+  }
+  return false;
 }
 
 function getTreeNodeToneClass(tableKey, record) {
@@ -816,7 +819,6 @@ function buildConnectionTree(tableKey, record, depth = 0, visited = new Set(), r
     return null;
   }
 
-  const shouldExpandChildren = shouldExpandTreeChildren(rootTableKey, tableKey, depth);
   const connections = getRecordConnections(tableKey, record)
     .filter((connection) => depth === 0 || connection.kind !== "context");
   const children = [];
@@ -828,7 +830,8 @@ function buildConnectionTree(tableKey, record, depth = 0, visited = new Set(), r
         const childKey = getTreeNodeKey(item.tableKey, item.row);
         if (nextVisited.has(childKey)) return null;
 
-        if (!shouldExpandChildren) {
+        const shouldExpandChild = shouldExpandTreeItem(rootTableKey, tableKey, depth, item.tableKey);
+        if (!shouldExpandChild) {
           return {
             id: item.id,
             tableKey: item.tableKey,
