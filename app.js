@@ -526,6 +526,34 @@ function getRecordConnections(tableKey, record) {
   const row = record ?? {};
   const rowLabel = getRecordLabel(tableKey, row);
   const getConnectionLabel = (targetKey, fallback = "") => getTableByKey(targetKey)?.title ?? titleCaseKey(fallback || targetKey);
+  const normalizeConnections = (items) => {
+    const grouped = new Map();
+
+    items.forEach((connection) => {
+      const groupKey = `${connection.key ?? connection.label}:${connection.label}`;
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, {
+          ...connection,
+          items: [],
+        });
+      }
+
+      const group = grouped.get(groupKey);
+      if (connection.kind === "linked") group.kind = "linked";
+      group.items.push(...connection.items);
+    });
+
+    return Array.from(grouped.values()).map((connection) => {
+      const seen = new Set();
+      connection.items = connection.items.filter((item) => {
+        const itemKey = `${item.tableKey}:${item.id ?? item.label}`;
+        if (seen.has(itemKey)) return false;
+        seen.add(itemKey);
+        return true;
+      });
+      return connection;
+    });
+  };
 
   const findRelatedRecord = (sourceTables, value, relation) => {
     for (const sourceTableKey of sourceTables) {
@@ -750,7 +778,7 @@ function getRecordConnections(tableKey, record) {
     );
   }
 
-  return connections;
+  return normalizeConnections(connections);
 }
 
 function getTreeNodeKey(tableKey, record) {
