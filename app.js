@@ -13,6 +13,7 @@ const tables = [
       { name: "verticals", label: "Verticals", type: "text", placeholder: "Comma separated" },
       { name: "entity_form", label: "Entity form", type: "select", options: ["PvtLtd", "LLP", "Proprietorship", "Trust", "Other"] },
       { name: "reg_no", label: "Reg no.", type: "text", placeholder: "CIN / LLPIN / GST" },
+      { name: "primary_contact", label: "Primary contact", type: "text" },
       { name: "tags", label: "Tags", type: "text", placeholder: "Comma separated" },
     ],
   },
@@ -152,10 +153,10 @@ const tables = [
 
 const data = {
   ventures: [
-    { id: "ven_1", name: "ATit Capital", date: "2026-06-01", type: "Self", status: "Active", verticals: ["Capital", "Operations"], entity_form: "PvtLtd" },
-    { id: "ven_2", name: "Aster Park SPV", date: "2026-06-03", type: "SPV", status: "Active", verticals: ["Real Estate"], entity_form: "LLP" },
-    { id: "ven_3", name: "Northline Client Co", date: "2026-06-07", type: "Client", status: "Active", verticals: ["Leasing"], entity_form: "PvtLtd" },
-    { id: "ven_4", name: "Greenfield Vendor", date: "2026-06-11", type: "Vendor", status: "Prospect", verticals: ["Operations"], entity_form: "Proprietorship" },
+    { id: "ven_1", name: "ATit Capital", date: "2026-06-01", type: "Self", status: "Active", verticals: ["Capital", "Operations"], entity_form: "PvtLtd", primary_contact: "Amit Shah" },
+    { id: "ven_2", name: "Aster Park SPV", date: "2026-06-03", type: "SPV", status: "Active", verticals: ["Real Estate"], entity_form: "LLP", primary_contact: "Nina Mehta" },
+    { id: "ven_3", name: "Northline Client Co", date: "2026-06-07", type: "Client", status: "Active", verticals: ["Leasing"], entity_form: "PvtLtd", primary_contact: "Rohan Jain" },
+    { id: "ven_4", name: "Greenfield Vendor", date: "2026-06-11", type: "Vendor", status: "Prospect", verticals: ["Operations"], entity_form: "Proprietorship", primary_contact: "Karan Rao" },
   ],
   people: [
     { id: "peo_1", name: "Amit Shah", type: ["Founder"], email: "amit@atit.com", venture: "ATit Capital", role_title: "Founder", access_level: "Founder", status: "Active" },
@@ -314,6 +315,7 @@ const relationFields = {
   venture: { table: "ventures", labelField: "name" },
   asset: { table: "assets", labelField: "name" },
   lead: { table: "people", labelField: "name" },
+  primary_contact: { table: "people", labelField: "name" },
   project: { table: "projects", labelField: "name" },
   parent_task: { table: "tasks", labelField: "title" },
   owner: { table: "people", labelField: "name" },
@@ -755,7 +757,29 @@ function getTreeNodeKey(tableKey, record) {
   return `${tableKey}:${record?.id ?? record?.name ?? record?.title ?? ""}`;
 }
 
-function buildConnectionTree(tableKey, record, depth = 0, visited = new Set()) {
+function shouldExpandTreeChildren(rootTableKey, tableKey, depth) {
+  if (rootTableKey !== "ventures") return false;
+  if (depth === 0) return true;
+  return depth === 1 && tableKey === "projects";
+}
+
+function getTreeNodeToneClass(tableKey, record) {
+  if (tableKey === "people") {
+    const ventureName = record?.venture || "";
+    if (!ventureName || ventureName === "ATit Capital") return "";
+    return getVentureTone(ventureName);
+  }
+
+  if (tableKey === "ventures") {
+    const ventureName = record?.name || "";
+    if (!ventureName || ventureName === "ATit Capital") return "";
+    return getVentureTone(ventureName);
+  }
+
+  return "";
+}
+
+function buildConnectionTree(tableKey, record, depth = 0, visited = new Set(), rootTableKey = tableKey) {
   const nodeKey = getTreeNodeKey(tableKey, record);
   const nextVisited = new Set(visited);
   nextVisited.add(nodeKey);
@@ -764,7 +788,9 @@ function buildConnectionTree(tableKey, record, depth = 0, visited = new Set()) {
     return null;
   }
 
-  const connections = getRecordConnections(tableKey, record);
+  const shouldExpandChildren = shouldExpandTreeChildren(rootTableKey, tableKey, depth);
+  const connections = getRecordConnections(tableKey, record)
+    .filter((connection) => depth === 0 || connection.kind !== "context");
   const children = [];
 
   connections.forEach((connection) => {
@@ -774,7 +800,19 @@ function buildConnectionTree(tableKey, record, depth = 0, visited = new Set()) {
         const childKey = getTreeNodeKey(item.tableKey, item.row);
         if (nextVisited.has(childKey)) return null;
 
-        return buildConnectionTree(item.tableKey, item.row, depth + 1, nextVisited);
+        if (!shouldExpandChildren) {
+          return {
+            id: item.id,
+            tableKey: item.tableKey,
+            label: getRecordLabel(item.tableKey, item.row),
+            iconKey: item.tableKey,
+            toneClass: getTreeNodeToneClass(item.tableKey, item.row),
+            isRoot: false,
+            children: [],
+          };
+        }
+
+        return buildConnectionTree(item.tableKey, item.row, depth + 1, nextVisited, rootTableKey);
       })
       .filter(Boolean);
 
@@ -792,17 +830,19 @@ function buildConnectionTree(tableKey, record, depth = 0, visited = new Set()) {
     tableKey,
     label: getRecordLabel(tableKey, record),
     iconKey: tableKey,
+    toneClass: getTreeNodeToneClass(tableKey, record),
     isRoot: depth === 0,
     children,
   };
 }
 
 function renderConnectionTreeNode(node) {
-  const nodeClass = node.isRoot
+  const baseClass = node.isRoot
     ? "connection-node connection-node-root"
     : node.isGroup
       ? "connection-node connection-node-group"
       : "connection-node";
+  const nodeClass = `${baseClass}${node.toneClass ? ` ${node.toneClass}` : ""}`;
 
   const attrs = node.isGroup
     ? ""
@@ -840,7 +880,51 @@ function renderDetailTree(tableKey, record) {
   `;
 }
 
+function getExpandedLinkedGroups(tableKey, record) {
+  const root = buildConnectionTree(tableKey, record);
+  if (!root) return [];
+
+  const grouped = new Map();
+  const seen = new Set();
+
+  const visit = (node) => {
+    if (!node) return;
+    if (node.isGroup) {
+      node.children?.forEach(visit);
+      return;
+    }
+
+    if (!node.isRoot && node.id) {
+      const itemKey = `${node.tableKey}:${node.id}`;
+      if (!seen.has(itemKey)) {
+        seen.add(itemKey);
+        if (!grouped.has(node.tableKey)) grouped.set(node.tableKey, []);
+        const sourceRow = data[node.tableKey]?.find((item) => item.id === node.id) ?? null;
+        grouped.get(node.tableKey).push({
+          label: getRecordReferenceLabel(node.tableKey, sourceRow ?? node),
+          tableKey: node.tableKey,
+          id: node.id,
+          row: sourceRow,
+        });
+      }
+    }
+
+    node.children?.forEach(visit);
+  };
+
+  visit(root);
+
+  return tables
+    .filter((table) => grouped.has(table.key))
+    .map((table) => ({
+      label: table.title,
+      key: table.key,
+      items: grouped.get(table.key),
+    }));
+}
+
 function renderRecordDetail(table, record) {
+  const detailIconTone = getDetailIconTone(table.key, record);
   const rows = table.fields.map((field) => {
     const value = getFieldDisplayValue(field, record);
     const display = Array.isArray(record?.[field.name]) ? record[field.name].join(", ") : value || "—";
@@ -852,7 +936,9 @@ function renderRecordDetail(table, record) {
     `;
   }).join("");
 
-  const connections = getRecordConnections(table.key, record);
+  const connections = table.key === "ventures"
+    ? getExpandedLinkedGroups(table.key, record)
+    : getRecordConnections(table.key, record);
 
   return `
     <div class="detail-view">
@@ -863,8 +949,12 @@ function renderRecordDetail(table, record) {
               <path d="m15 18-6-6 6-6"></path>
             </svg>
           </button>
-          <div>
-            <h2>${escapeHtml(record.name || record.title || record.reference || table.singular)}</h2>
+          <div class="detail-title-block">
+            <span class="detail-title-icon ${escapeHtml(detailIconTone)}" aria-hidden="true">${getTableIcon(table.key)}</span>
+            <div class="detail-title-copy">
+              <div class="detail-eyebrow">${escapeHtml(table.title)}</div>
+              <h2>${escapeHtml(record.name || record.title || record.reference || table.singular)}</h2>
+            </div>
           </div>
         </div>
         <div class="detail-actions">
@@ -886,8 +976,9 @@ function renderRecordDetail(table, record) {
               <div class="detail-linked-group">
                 <div class="detail-linked-group-head">${escapeHtml(connection.label)} (${connection.items.length})</div>
                 <div class="detail-linked-list">
-                  ${connection.items.map((item) => `
+                  ${connection.items.map((item, index) => `
                     <button class="linked-record-row" type="button" data-tree-open="${escapeHtml(item.tableKey)}" data-tree-record="${escapeHtml(item.id ?? "")}">
+                      <span class="linked-record-serial">${renderSerialNumber(index + 1)}</span>
                       <span class="linked-record-label">${escapeHtml(item.label)}</span>
                       <span class="linked-record-arrow">›</span>
                     </button>
@@ -1107,16 +1198,21 @@ function formatCell(tableKey, column, row) {
   return String(value);
 }
 
+function renderSerialNumber(value) {
+  return `<span class="record-serial">${escapeHtml(String(value))}</span>`;
+}
+
 function renderRecordsBody(table, rows) {
-  return rows.map((row) => `
+  return rows.map((row, index) => `
     <tr data-open-detail="${escapeHtml(table.key)}" data-record-id="${escapeHtml(row.id)}">
+      <td class="records-serial-cell">${renderSerialNumber(index + 1)}</td>
       ${table.listColumns.map((column) => `<td>${escapeHtml(formatCell(table.key, column, row))}</td>`).join("")}
       <td class="records-actions-cell">
         <button class="record-action-button" type="button" data-record-action="edit" data-record-id="${escapeHtml(row.id)}">Edit</button>
         <button class="record-action-button" type="button" data-record-action="delete" data-record-id="${escapeHtml(row.id)}">Delete</button>
       </td>
     </tr>
-  `).join("") || `<tr><td colspan="${table.listColumns.length + 1}">No records</td></tr>`;
+  `).join("") || `<tr><td colspan="${table.listColumns.length + 2}">No records</td></tr>`;
 }
 
 function getVentureTone(value) {
@@ -1127,9 +1223,15 @@ function getVentureTone(value) {
   return tones[sum % tones.length];
 }
 
+function getDetailIconTone(tableKey, record) {
+  if (tableKey !== "ventures") return "";
+  return getVentureTone(record?.name || "");
+}
+
 function renderPeopleRecords(rows) {
   if (!rows.length) return `<div class="people-empty">No records</div>`;
 
+  const serialById = new Map(rows.map((row, index) => [row.id, index + 1]));
   const groups = new Map();
   rows.forEach((row) => {
     const venture = row.venture || "Unassigned";
@@ -1147,7 +1249,10 @@ function renderPeopleRecords(rows) {
         ${people.map((row) => `
           <article class="person-card ${getVentureTone(venture)}" data-open-detail="people" data-record-id="${escapeHtml(row.id)}">
             <div class="person-card-main">
-              <strong>${escapeHtml(row.name || "Unnamed")}</strong>
+              <div class="person-card-title-row">
+                ${renderSerialNumber(serialById.get(row.id) ?? "—")}
+                <strong>${escapeHtml(row.name || "Unnamed")}</strong>
+              </div>
               <div class="person-card-meta">
                 <span>${escapeHtml(formatCell("people", "type", row))}</span>
                 <span>${escapeHtml(row.access_level || "No access")}</span>
@@ -1238,7 +1343,7 @@ function renderRecordsTable(table) {
     `;
   }
 
-  const headers = `${table.listColumns.map((column) => `<th>${escapeHtml(titleCaseKey(column))}</th>`).join("")}<th>Actions</th>`;
+  const headers = `<th class="records-serial-head">S. No.</th>${table.listColumns.map((column) => `<th>${escapeHtml(titleCaseKey(column))}</th>`).join("")}<th>Actions</th>`;
 
   return `
     ${toolbar}
@@ -1271,9 +1376,13 @@ function bindRecordRowActions(table) {
 }
 
 function openRecordDetail(tableKey, recordId) {
+  state.activeNav = tableKey;
+  state.activeTable = tableKey;
+  state.search = "";
   state.detailTableKey = tableKey;
   state.detailRecordId = recordId;
   state.detailTreeOpen = false;
+  renderSidebarNav();
   renderHeroPanel();
 }
 
