@@ -1484,7 +1484,7 @@ function formatCell(tableKey, column, row) {
 
 function renderCellMarkup(tableKey, column, row) {
   const value = formatCell(tableKey, column, row);
-  if (tableKey === "tasks" && column === "status" && value !== "—") {
+  if ((tableKey === "tasks" || tableKey === "projects") && column === "status" && value !== "—") {
     return renderTaskStatusBadge(value, "records");
   }
   if (tableKey === "events" && column === "type" && value !== "—") {
@@ -2339,6 +2339,17 @@ async function deleteRecord(tableKey, recordId) {
 }
 
 function bindEvents() {
+  el.homeButton.addEventListener("click", () => {
+    state.activeNav = "dashboard";
+    state.search = "";
+    state.detailTableKey = null;
+    state.detailRecordId = null;
+    state.detailTreeOpen = false;
+    clearDetailHistory();
+    renderSidebarNav();
+    renderHeroPanel();
+  });
+
   el.sidebarToggle.addEventListener("click", () => {
     state.sidebarCollapsed = !state.sidebarCollapsed;
     applySidebarState();
@@ -2399,6 +2410,7 @@ function renderAll() {
 function init() {
   el.layout = document.querySelector(".layout");
   el.sidebarNav = document.getElementById("sidebar-nav");
+  el.homeButton = document.getElementById("home-button");
   el.sidebarToggle = document.getElementById("sidebar-toggle");
   el.heroPanel = document.getElementById("hero-panel");
   el.modal = document.getElementById("modal");

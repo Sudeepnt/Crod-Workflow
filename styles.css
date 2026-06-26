@@ -73,6 +73,13 @@ body.modal-open {
   align-items: center;
 }
 
+.sidebar-home-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
 .sidebar-logo {
   display: block;
   width: 96px;
@@ -581,7 +588,8 @@ input[type="search"] {
   background: rgba(255, 255, 255, 0.86);
 }
 
-.attention-status-active {
+.attention-status-active,
+.records-status-active {
   color: #1f7a35;
   border-color: rgba(31, 122, 53, 0.24);
   background: rgba(225, 246, 231, 0.9);
