@@ -88,6 +88,9 @@ const tables = [
       { name: "venture", label: "Venture", type: "select", required: true },
       { name: "project", label: "Project", type: "select" },
       { name: "task", label: "Task", type: "select" },
+      { name: "related_assets", label: "Assets", type: "select" },
+      { name: "related_events", label: "Events", type: "select" },
+      { name: "related_transactions", label: "Transactions", type: "select" },
       { name: "type", label: "Type", type: "select", options: ["Note", "Report", "Agreement", "Drawing", "Photo", "Model", "Proposal", "Research", "Comms"] },
       { name: "body", label: "Body", type: "textarea" },
       { name: "file_ref", label: "File ref", type: "text" },
@@ -166,6 +169,7 @@ const tables = [
 
 const SUPABASE_URL = "https://enozxcriirsytgrjcxbt.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tULBf6UJrmdpNRdeb5SQmw_VOAoUhpr";
+const APP_TIMEZONE = "Asia/Kolkata";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
 const supabaseClient = supabaseClientFactory
@@ -1028,6 +1032,7 @@ const state = {
   detailHistory: [],
   recordFilters: {},
   taskExpanded: {},
+  ganttWeekStart: null,
 };
 
 const el = {};
@@ -1051,6 +1056,9 @@ const relationFields = {
   task: { table: "tasks", labelField: "title" },
   participants: { table: "people", labelField: "name", multiple: true },
   links: { tables: ["ventures", "people", "projects", "tasks", "documents", "assets", "events", "transactions"], multiple: true },
+  related_assets: { table: "assets", labelField: "name", multiple: true },
+  related_events: { table: "events", labelField: "title", multiple: true },
+  related_transactions: { table: "transactions", labelField: "reference", multiple: true },
   counterparty: { table: "ventures", labelField: "name" },
   project_asset: { tables: ["projects", "assets"] },
   documents: { table: "documents", labelField: "title", multiple: true },
@@ -1059,7 +1067,7 @@ const relationFields = {
 const jsonColumnDefaults = {
   ventures: { verticals: [], tags: [] },
   tasks: { assignees: [], depends_on: [] },
-  documents: { links: [], tags: [] },
+  documents: { links: [], related_assets: [], related_events: [], related_transactions: [], tags: [] },
   assets: { owner_ventures: [] },
   events: { participants: [] },
   transactions: { documents: [] },
@@ -1068,6 +1076,7 @@ const jsonColumnDefaults = {
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", kind: "dashboard", count: null },
   ...tables.map((table) => ({ key: table.key, label: table.title, kind: "table" })),
+  { key: "gantt", label: "Gantt Chart", kind: "gantt", count: null },
   { key: "admin", label: "Admin", kind: "admin", count: null },
 ];
 
@@ -1148,6 +1157,144 @@ function getProjectByName(projectName) {
 
 function getTaskByTitle(taskTitle) {
   return data.tasks.find((item) => item.title === taskTitle) ?? null;
+}
+
+function getVentureByName(ventureName) {
+  return data.ventures.find((item) => item.name === ventureName) ?? null;
+}
+
+function resolveRowVentureName(row = {}) {
+  const directVenture = String(row?.venture ?? "").trim();
+  if (directVenture) return directVenture;
+
+  const projectName = String(row?.project ?? "").trim();
+  if (projectName) {
+    const projectRow = getProjectByName(projectName);
+    const projectVenture = String(projectRow?.venture ?? "").trim();
+    if (projectVenture) return projectVenture;
+  }
+
+  const taskTitle = String(row?.task ?? "").trim();
+  if (taskTitle) {
+    const taskRow = getTaskByTitle(taskTitle);
+    if (taskRow) {
+      const taskVenture = String(taskRow.venture ?? "").trim();
+      if (taskVenture) return taskVenture;
+      const taskProject = String(taskRow.project ?? "").trim();
+      if (taskProject) {
+        const taskProjectRow = getProjectByName(taskProject);
+        const projectVenture = String(taskProjectRow?.venture ?? "").trim();
+        if (projectVenture) return projectVenture;
+      }
+    }
+  }
+
+  return "";
+}
+
+function getPersonLinkedVentures(personRow) {
+  const personName = String(personRow?.name ?? "").trim();
+  if (!personName) return [];
+
+  const ventures = new Map();
+  const addVenture = (ventureName) => {
+    const normalized = String(ventureName ?? "").trim();
+    if (!normalized || ventures.has(normalized)) return;
+    const ventureRow = getVentureByName(normalized);
+    if (!ventureRow) return;
+    ventures.set(normalized, {
+      label: getRecordReferenceLabel("ventures", ventureRow),
+      tableKey: "ventures",
+      id: ventureRow.id,
+      row: ventureRow,
+    });
+  };
+
+  addVenture(personRow.venture);
+
+  (data.projects ?? [])
+    .filter((item) => String(item.lead ?? "").trim() === personName)
+    .forEach((item) => addVenture(resolveRowVentureName(item)));
+
+  (data.tasks ?? [])
+    .filter((item) => {
+      const owner = String(item.owner ?? "").trim();
+      const external = String(item.external_shared_with ?? "").trim();
+      const assignees = Array.isArray(item.assignees) ? item.assignees.map((name) => String(name).trim()) : [];
+      return owner === personName || external === personName || assignees.includes(personName);
+    })
+    .forEach((item) => addVenture(resolveRowVentureName(item)));
+
+  (data.events ?? [])
+    .filter((item) => Array.isArray(item.participants) && item.participants.map((name) => String(name).trim()).includes(personName))
+    .forEach((item) => addVenture(resolveRowVentureName(item)));
+
+  (data.documents ?? [])
+    .filter((item) => Array.isArray(item.links) && item.links.map((value) => String(value).trim()).includes(personName))
+    .forEach((item) => {
+      addVenture(resolveRowVentureName(item));
+
+      (Array.isArray(item.related_assets) ? item.related_assets : []).forEach((assetName) => {
+        const assetRow = data.assets.find((asset) => String(asset.name ?? "").trim() === String(assetName).trim()) ?? null;
+        addVenture(resolveRowVentureName(assetRow));
+      });
+
+      (Array.isArray(item.related_events) ? item.related_events : []).forEach((eventTitle) => {
+        const eventRow = data.events.find((event) => String(event.title ?? "").trim() === String(eventTitle).trim()) ?? null;
+        addVenture(resolveRowVentureName(eventRow));
+      });
+
+      (Array.isArray(item.related_transactions) ? item.related_transactions : []).forEach((reference) => {
+        const transactionRow = data.transactions.find((transaction) => String(transaction.reference ?? "").trim() === String(reference).trim()) ?? null;
+        addVenture(resolveRowVentureName(transactionRow));
+      });
+    });
+
+  return Array.from(ventures.values());
+}
+
+function getVentureLinkedPeople(ventureRow) {
+  const ventureName = String(ventureRow?.name ?? "").trim();
+  if (!ventureName) return [];
+
+  const people = new Map();
+  const addPerson = (personName) => {
+    const normalized = String(personName ?? "").trim();
+    if (!normalized || people.has(normalized)) return;
+    const personRow = getPersonByName(normalized);
+    if (!personRow) return;
+    people.set(normalized, createTreeLeafNode("people", personRow, getRecordReferenceLabel("people", personRow)));
+  };
+
+  (data.people ?? [])
+    .filter((item) => String(item.venture ?? "").trim() === ventureName)
+    .forEach((item) => addPerson(item.name));
+
+  (data.projects ?? [])
+    .filter((item) => String(resolveRowVentureName(item)) === ventureName)
+    .forEach((item) => addPerson(item.lead));
+
+  (data.tasks ?? [])
+    .filter((item) => String(resolveRowVentureName(item)) === ventureName)
+    .forEach((item) => {
+      addPerson(item.owner);
+      addPerson(item.external_shared_with);
+      (Array.isArray(item.assignees) ? item.assignees : []).forEach(addPerson);
+    });
+
+  (data.events ?? [])
+    .filter((item) => String(resolveRowVentureName(item)) === ventureName)
+    .forEach((item) => {
+      (Array.isArray(item.participants) ? item.participants : []).forEach(addPerson);
+    });
+
+  (data.documents ?? [])
+    .filter((item) => String(resolveRowVentureName(item)) === ventureName || (Array.isArray(item.links) && item.links.includes(ventureName)))
+    .forEach((item) => {
+      (Array.isArray(item.links) ? item.links : []).forEach(addPerson);
+    });
+
+  return Array.from(people.values());
 }
 
 function ensurePersonRecord(name, venture = "") {
@@ -1443,6 +1590,25 @@ function getRowsByFieldValue(tableKey, fieldName, value) {
   });
 }
 
+function getLinkedDocumentsForRecord(targetTableKey, value) {
+  const fieldName = targetTableKey === "assets"
+    ? "related_assets"
+    : targetTableKey === "events"
+      ? "related_events"
+      : targetTableKey === "transactions"
+        ? "related_transactions"
+        : null;
+
+  if (!fieldName) return [];
+
+  return (data.documents ?? []).filter((row) => {
+    if (Array.isArray(row.links) && row.links.map(String).includes(String(value))) return true;
+    const fieldValue = row[fieldName];
+    if (Array.isArray(fieldValue)) return fieldValue.map(String).includes(String(value));
+    return false;
+  });
+}
+
 function getRecordReferenceLabel(tableKey, row) {
   const primary = tableKey === "people"
     ? formatPersonDisplayLabel(row)
@@ -1577,6 +1743,17 @@ function getRecordConnections(tableKey, record) {
       })
       .filter(Boolean);
     addConnection("ventures", ownerItems, "ventures", "context");
+    addConnection(
+      "documents",
+      getLinkedDocumentsForRecord("assets", rowLabel).map((item) => ({
+        label: getRecordReferenceLabel("documents", item),
+        tableKey: "documents",
+        id: item.id,
+        row: item,
+      })),
+      "documents",
+      "linked",
+    );
   }
 
   if (tableKey === "projects") {
@@ -1618,12 +1795,7 @@ function getRecordConnections(tableKey, record) {
   if (tableKey === "people") {
     addConnection(
       "ventures",
-      row.venture ? [{
-        label: row.venture,
-        tableKey: "ventures",
-        id: data.ventures.find((item) => item.name === row.venture)?.id ?? null,
-        row: data.ventures.find((item) => item.name === row.venture) ?? null,
-      }].filter((item) => item.row) : [],
+      getPersonLinkedVentures(row),
       "ventures",
       "context",
     );
@@ -1640,7 +1812,14 @@ function getRecordConnections(tableKey, record) {
     );
     addConnection(
       "tasks",
-      getRowsByFieldValue("tasks", "owner", rowLabel).map((item) => ({
+      (data.tasks ?? [])
+        .filter((item) => {
+          const owner = String(item.owner ?? "").trim();
+          const external = String(item.external_shared_with ?? "").trim();
+          const assignees = Array.isArray(item.assignees) ? item.assignees.map((name) => String(name).trim()) : [];
+          return owner === rowLabel || external === rowLabel || assignees.includes(rowLabel);
+        })
+        .map((item) => ({
         label: getRecordReferenceLabel("tasks", item),
         tableKey: "tasks",
         id: item.id,
@@ -1707,6 +1886,34 @@ function getRecordConnections(tableKey, record) {
         row: item,
       })),
       "tasks",
+      "linked",
+    );
+  }
+
+  if (tableKey === "events") {
+    addConnection(
+      "documents",
+      getLinkedDocumentsForRecord("events", rowLabel).map((item) => ({
+        label: getRecordReferenceLabel("documents", item),
+        tableKey: "documents",
+        id: item.id,
+        row: item,
+      })),
+      "documents",
+      "linked",
+    );
+  }
+
+  if (tableKey === "transactions") {
+    addConnection(
+      "documents",
+      getLinkedDocumentsForRecord("transactions", rowLabel).map((item) => ({
+        label: getRecordReferenceLabel("documents", item),
+        tableKey: "documents",
+        id: item.id,
+        row: item,
+      })),
+      "documents",
       "linked",
     );
   }
@@ -1958,14 +2165,12 @@ function buildStructuredProjectNode(projectRow, options = {}) {
 function buildStructuredTree(tableKey, record) {
   if (tableKey === "ventures") {
     const children = [];
-    const primaryContact = record.primary_contact
-      ? data.people.find((item) => item.name === record.primary_contact) ?? null
-      : null;
-    if (primaryContact) {
+    const venturePeople = getVentureLinkedPeople(record);
+    if (venturePeople.length) {
       children.push({
         isGroup: true,
         label: "People",
-        children: [createTreeLeafNode("people", primaryContact, getRecordReferenceLabel("people", primaryContact))],
+        children: venturePeople,
       });
     }
 
@@ -1973,18 +2178,26 @@ function buildStructuredTree(tableKey, record) {
       .filter((item) => item.venture === record.name)
       .map((item) => buildStructuredProjectNode(item));
 
-    pushStructuredGroup(
-      children,
-      "Assets",
-      "assets",
-      (data.assets ?? []).filter((item) => item.venture === record.name),
-    );
+    if (projectNodes.length) {
+      children.push({
+        isGroup: true,
+        label: "Projects",
+        children: projectNodes,
+      });
+    }
 
     pushStructuredGroup(
       children,
       "Events",
       "events",
       (data.events ?? []).filter((item) => item.venture === record.name),
+    );
+
+    pushStructuredGroup(
+      children,
+      "Assets",
+      "assets",
+      (data.assets ?? []).filter((item) => item.venture === record.name),
     );
 
     pushStructuredGroup(
@@ -2000,14 +2213,6 @@ function buildStructuredTree(tableKey, record) {
       "transactions",
       (data.transactions ?? []).filter((item) => item.venture === record.name),
     );
-
-    if (projectNodes.length) {
-      children.push({
-        isGroup: true,
-        label: "Projects",
-        children: projectNodes,
-      });
-    }
 
     return {
       id: record.id,
@@ -2100,6 +2305,9 @@ function renderConnectionTreeNode(node) {
       ? "connection-node connection-node-group"
       : "connection-node";
   const nodeClass = `${baseClass}${node.toneClass ? ` ${node.toneClass}` : ""}`;
+  const shouldStackChildren = node.isGroup
+    && node.children?.length > 1
+    && ["Assets", "Documents", "Transactions"].includes(node.label);
 
   const attrs = node.isGroup
     ? ""
@@ -2110,7 +2318,7 @@ function renderConnectionTreeNode(node) {
     : "";
 
   return `
-    <li>
+    <li${shouldStackChildren ? ' class="tree-group-stack-vertical"' : ""}>
       ${node.isGroup
         ? `<div class="${nodeClass}"><span>${escapeHtml(node.label)}</span></div>`
         : `<button class="${nodeClass}" ${attrs}>${iconMarkup}<span>${escapeHtml(node.label)}</span></button>`}
@@ -2365,6 +2573,9 @@ function renderSidebarNav() {
       if (sidebarKind === "dashboard") {
         renderHeroPanel();
       }
+      if (sidebarKind === "gantt") {
+        renderHeroPanel();
+      }
       if (sidebarKind === "admin") {
         renderHeroPanel();
       }
@@ -2453,8 +2664,16 @@ function renderBoard() {
 }
 
 function getTodayKey() {
-  const today = new Date();
-  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value ?? "0000";
+  const month = parts.find((part) => part.type === "month")?.value ?? "00";
+  const day = parts.find((part) => part.type === "day")?.value ?? "00";
+  return `${year}-${month}-${day}`;
 }
 
 function formatDashboardDate(value, includeTime = false) {
@@ -2468,6 +2687,121 @@ function formatDashboardDate(value, includeTime = false) {
     : { day: "2-digit", month: "short" };
 
   return new Intl.DateTimeFormat("en-GB", options).format(date);
+}
+
+function getDateOnlyKey(value) {
+  if (!value) return "";
+  const normalized = String(value).trim();
+  if (!normalized) return "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(normalized)) return normalized.slice(0, 10);
+
+  const parsed = new Date(normalized.includes(" ") ? normalized.replace(" ", "T") : normalized);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+}
+
+function getDateAtDayStart(value) {
+  const key = getDateOnlyKey(value);
+  return key ? new Date(`${key}T00:00:00`) : null;
+}
+
+function addDays(date, count) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + count);
+  return next;
+}
+
+function addMonths(date, count) {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + count);
+  return next;
+}
+
+function getDateDiffInDays(start, end) {
+  return Math.round((end.getTime() - start.getTime()) / 86400000);
+}
+
+function getStartOfWeek(value = new Date()) {
+  const base = value instanceof Date ? new Date(value) : (getDateAtDayStart(value) || new Date());
+  base.setHours(0, 0, 0, 0);
+  const weekdayOffset = (base.getDay() + 6) % 7;
+  return addDays(base, -weekdayOffset);
+}
+
+function getCenteredWeekStart(value = new Date()) {
+  const base = value instanceof Date ? new Date(value) : (getDateAtDayStart(value) || new Date());
+  base.setHours(0, 0, 0, 0);
+  return addDays(base, -2);
+}
+
+function getGanttWeekStart() {
+  return state.ganttWeekStart
+    ? (getDateAtDayStart(state.ganttWeekStart) || getCenteredWeekStart(getTodayKey()))
+    : getCenteredWeekStart(getTodayKey());
+}
+
+function setGanttWeekStart(value) {
+  const next = value instanceof Date ? value : (getDateAtDayStart(value) || getCenteredWeekStart(getTodayKey()));
+  state.ganttWeekStart = getDateOnlyKey(next.toISOString());
+}
+
+function syncGanttUrl(startDate, replace = false) {
+  const nextUrl = getGanttViewHref(startDate);
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl === currentUrl) return;
+  window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
+}
+
+function shiftGanttWindow(days) {
+  const nextStart = addDays(getGanttWeekStart(), Number(days) || 0);
+  setGanttWeekStart(nextStart);
+  syncGanttUrl(nextStart);
+  renderHeroPanel();
+}
+
+function jumpGanttMonth(months) {
+  const nextStart = addMonths(getGanttWeekStart(), Number(months) || 0);
+  setGanttWeekStart(nextStart);
+  syncGanttUrl(nextStart);
+  renderHeroPanel();
+}
+
+function resetGanttToday() {
+  const nextStart = getCenteredWeekStart(getTodayKey());
+  setGanttWeekStart(nextStart);
+  syncGanttUrl(nextStart);
+  renderHeroPanel();
+}
+
+function openGanttRecord(tableKey, recordId) {
+  if (!tableKey || !recordId) return;
+  openRecordDetail(tableKey, recordId, { preserveNav: true });
+}
+
+globalThis.shiftGanttWindow = shiftGanttWindow;
+globalThis.jumpGanttMonth = jumpGanttMonth;
+globalThis.resetGanttToday = resetGanttToday;
+globalThis.openGanttRecord = openGanttRecord;
+
+function getGanttViewHref(startDate) {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "gantt");
+  url.searchParams.set("gantt", getDateOnlyKey((startDate instanceof Date ? startDate : getDateAtDayStart(startDate) || getGanttWeekStart()).toISOString()));
+  return `${url.pathname}${url.search}`;
+}
+
+function applyUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const view = params.get("view");
+  const gantt = params.get("gantt");
+
+  if (view === "gantt") {
+    state.activeNav = "gantt";
+  }
+
+  if (gantt) {
+    state.ganttWeekStart = gantt;
+  }
 }
 
 function getDaysUntil(dateKey) {
@@ -2671,6 +3005,230 @@ function renderDashboardAttention() {
   `;
 }
 
+function getGanttTimelineItems() {
+  const taskItems = (data.tasks ?? [])
+    .map((task) => {
+      const linkedProject = getProjectByName(task.project);
+      const end = getDateAtDayStart(task.due_date);
+      const start = getDateAtDayStart(task.start_date) || getDateAtDayStart(linkedProject?.start_date) || end;
+      if (!start || !end) return null;
+
+      return {
+        id: task.id,
+        tableKey: "tasks",
+        label: task.title || task.id,
+        subtitle: [task.project, task.owner].filter(Boolean).join(" · "),
+        venture: task.venture || linkedProject?.venture || "",
+        project: task.project || "",
+        status: task.status || "",
+        lane: task.project || task.venture || "Tasks",
+        start,
+        end: end < start ? start : end,
+      };
+    })
+    .filter(Boolean);
+
+  const eventItems = (data.events ?? [])
+    .map((event) => {
+      const start = getDateAtDayStart(event.start || event.date);
+      if (!start) return null;
+      const end = getDateAtDayStart(event.end || event.start || event.date) || start;
+
+      return {
+        id: event.id,
+        tableKey: "events",
+        label: event.title || event.id,
+        subtitle: [event.project, event.type].filter(Boolean).join(" · "),
+        venture: event.venture || "",
+        project: event.project || "",
+        status: event.type || "",
+        lane: event.project || event.venture || "Events",
+        start,
+        end: end < start ? start : end,
+      };
+    })
+    .filter(Boolean);
+
+  return [...taskItems, ...eventItems]
+    .sort((left, right) => {
+      const laneCompare = String(left.lane).localeCompare(String(right.lane));
+      if (laneCompare !== 0) return laneCompare;
+      const startCompare = left.start.getTime() - right.start.getTime();
+      if (startCompare !== 0) return startCompare;
+      return String(left.label).localeCompare(String(right.label));
+    });
+}
+
+function renderGanttChart() {
+  const weekStart = getGanttWeekStart();
+  const weekDays = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+  const weekEnd = weekDays[6];
+  const todayIndex = weekDays.findIndex((day) => getDateOnlyKey(day.toISOString()) === getTodayKey());
+  const dateRangeLabel = `${weekDays[0].toLocaleString("en-GB", { month: "short", day: "numeric" })} - ${weekEnd.toLocaleString("en-GB", { month: "short", day: "numeric", year: "numeric" })}`;
+  const weekStartKey = getDateOnlyKey(weekStart.toISOString());
+  const columnLineStyle = (rowCount) => `--gantt-days: 7; --gantt-today-index: ${Math.max(todayIndex, 0)}; --gantt-row-count: ${Math.max(rowCount, 1)};`;
+  const projectColors = ["blue", "violet", "green", "amber", "red", "cyan", "pink", "indigo", "orange", "sky"];
+  const displayWeekdays = ["Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed"];
+  const getVisibleSpan = (start, end) => {
+    if (!start || !end || end < weekStart || start > weekEnd) return null;
+    const visibleStart = start < weekStart ? weekStart : start;
+    const visibleEnd = end > weekEnd ? weekEnd : end;
+    const offsetDays = Math.max(getDateDiffInDays(weekStart, visibleStart), 0);
+    const spanDays = Math.max(getDateDiffInDays(visibleStart, visibleEnd) + 1, 1);
+    return {
+      left: (offsetDays / 7) * 100,
+      width: Math.min((spanDays / 7) * 100, 100 - (offsetDays / 7) * 100),
+    };
+  };
+  const projectRows = (data.projects ?? [])
+    .slice()
+    .sort((left, right) => String(left.name || "").localeCompare(String(right.name || ""), undefined, { numeric: true }))
+    .map((project, index) => {
+      const start = getDateAtDayStart(project.start_date || project.date || project.target_date);
+      const end = getDateAtDayStart(project.target_date || project.start_date || project.date);
+      return {
+        id: project.id,
+        tableKey: "projects",
+        key: project.name || project.id,
+        label: project.name || project.id,
+        start,
+        end: end && start && end < start ? start : end,
+        color: projectColors[index % projectColors.length],
+      };
+    });
+  const taskRows = (data.tasks ?? [])
+    .slice()
+    .sort((left, right) => String(left.title || "").localeCompare(String(right.title || ""), undefined, { numeric: true }))
+    .map((task) => {
+      const project = getProjectByName(task.project);
+      const end = getDateAtDayStart(task.due_date);
+      const start = getDateAtDayStart(task.start_date) || getDateAtDayStart(project?.start_date) || end;
+      return {
+        id: task.id,
+        tableKey: "tasks",
+        key: task.title || task.id,
+        label: `Task · ${task.project || "No project"}${task.owner ? ` · ${task.owner}` : ""}`,
+        start,
+        end: end && start && end < start ? start : end,
+      };
+    });
+  const eventRows = (data.events ?? [])
+    .slice()
+    .sort((left, right) => String(left.start || left.date || "").localeCompare(String(right.start || right.date || "")))
+    .map((event) => {
+      const start = getDateAtDayStart(event.start || event.date);
+      const end = getDateAtDayStart(event.end || event.start || event.date) || start;
+      return {
+        id: event.id,
+        tableKey: "events",
+        key: event.title || event.id,
+        label: `Event · ${event.project || event.type || "No project"}${event.type ? ` · ${event.type}` : ""}`,
+        start,
+        end: end && start && end < start ? start : end,
+      };
+    });
+  const renderBar = (item, type) => {
+    const visibleSpan = getVisibleSpan(item.start, item.end);
+    if (!visibleSpan) return "";
+    const left = visibleSpan.left;
+    const width = visibleSpan.width;
+    const click = item.tableKey ? ` onclick="openGanttRecord('${escapeHtml(item.tableKey)}', '${escapeHtml(item.id)}')"` : "";
+    return `
+      <button class="gantt-canvas-bar gantt-canvas-bar-${type} ${item.color ? `gantt-color-${item.color}` : ""}" type="button" style="--bar-left:${left}%; --bar-width:${width}%;"${click}>
+        <span>${type === "event" ? "◆ " : ""}${escapeHtml(item.label)}</span>
+      </button>
+    `;
+  };
+  const gridRows = [
+    ...projectRows.map((item) => renderBar(item, "project")),
+    ...taskRows.map((item) => renderBar(item, "task")),
+    ...eventRows.map((item) => renderBar(item, "event")),
+  ];
+  const visibleRowCount = gridRows.filter(Boolean).length;
+  const sidebarSection = (title, count, iconClass, rows, overflowText) => `
+    <section class="gantt-workstream-section">
+      <div class="gantt-workstream-head">
+        <span class="gantt-section-caret">⌄</span>
+        <span class="gantt-section-icon ${iconClass}"></span>
+        <strong>${escapeHtml(title)}</strong>
+        <em>${count}</em>
+        <span class="gantt-section-more">•••</span>
+      </div>
+      <div class="gantt-workstream-list">
+        ${rows.map((row, index) => `
+          <div class="gantt-workstream-item">
+            <span class="gantt-dot ${row.color ? `gantt-dot-${row.color}` : ""}"></span>
+            <strong>${escapeHtml(row.key)}</strong>
+            <span>${escapeHtml(row.label)}</span>
+          </div>
+        `).join("")}
+        ${overflowText ? `<button class="gantt-view-all" type="button">${escapeHtml(overflowText)}</button>` : ""}
+      </div>
+    </section>
+  `;
+
+  return `
+    <section class="panel gantt-panel">
+      <div class="gantt-app-shell">
+        <header class="gantt-topbar">
+          <div class="gantt-title-row">
+            <span class="gantt-menu-icon">≡</span>
+            <div>
+              <h2>Gantt Chart</h2>
+              <p>Track tasks, events and milestones across all projects.</p>
+            </div>
+          </div>
+          <div class="gantt-stat-strip">
+            <div><strong>${taskRows.length}</strong><span>TASKS</span></div>
+            <div><strong>${eventRows.length}</strong><span>EVENTS</span></div>
+            <div><strong>${visibleRowCount}</strong><span>VISIBLE</span></div>
+          </div>
+        </header>
+        <div class="gantt-toolbar">
+          <div class="gantt-toolbar-left">
+            <div class="gantt-arrow-group">
+              <button type="button" data-gantt-shift="-1" aria-label="Show previous day">‹</button>
+              <button type="button" data-gantt-shift="1" aria-label="Show next day">›</button>
+            </div>
+            <button class="gantt-today-button" type="button" data-gantt-today="true">Today</button>
+            <label class="gantt-date-button">
+              <span>${escapeHtml(dateRangeLabel)}</span>
+              <span>⌄</span>
+              <input class="gantt-date-input" type="date" value="${escapeHtml(weekStartKey)}" data-gantt-date aria-label="Choose Gantt start date" />
+            </label>
+          </div>
+        </div>
+        <div class="gantt-board" style="${columnLineStyle(gridRows.length)}">
+          <aside class="gantt-workstreams">
+            <div class="gantt-workstream-label">WORKSTREAMS</div>
+            ${sidebarSection("PROJECTS", projectRows.length, "is-project", projectRows, "")}
+            ${sidebarSection("TASKS", taskRows.length, "is-task", taskRows.slice(0, 5), taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "")}
+            ${sidebarSection("EVENTS", eventRows.length, "is-event", eventRows.slice(0, 6), eventRows.length > 6 ? `View all ${eventRows.length} events` : "")}
+          </aside>
+          <main class="gantt-timeline">
+            <div class="gantt-timeline-days">
+              ${weekDays.map((day, index) => {
+                const isToday = getDateOnlyKey(day.toISOString()) === getTodayKey();
+                const label = `${displayWeekdays[index]} ${day.getDate()} ${day.toLocaleString("en-GB", { month: "short" })}`;
+                return `<div class="${isToday ? "is-today" : ""}">${escapeHtml(label)}</div>`;
+              }).join("")}
+            </div>
+            <div class="gantt-canvas">
+              <div class="gantt-today-line" aria-hidden="true"></div>
+              ${gridRows.map((bar, index) => `<div class="gantt-canvas-row">${bar}</div>`).join("")}
+            </div>
+          </main>
+        </div>
+        <div class="gantt-zoom-controls" aria-hidden="true">
+          <button type="button">−</button>
+          <button type="button">Week <span>⌄</span></button>
+          <button type="button">+</button>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
 function bindDashboardAttentionEvents() {
   el.attentionList?.querySelectorAll("[data-attention-table]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -2746,6 +3304,16 @@ function getTableIcon(key) {
         <rect x="2.5" y="6" width="19" height="12" rx="2"></rect>
         <path d="M2.5 10.5h19"></path>
         <path d="M7 14h3"></path>
+      </svg>
+    `,
+    gantt: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 6h16"></path>
+        <path d="M4 12h16"></path>
+        <path d="M4 18h16"></path>
+        <rect x="5" y="4.5" width="7" height="3" rx="1.5"></rect>
+        <rect x="10" y="10.5" width="9" height="3" rx="1.5"></rect>
+        <rect x="7" y="16.5" width="5" height="3" rx="1.5"></rect>
       </svg>
     `,
     admin: `
@@ -3307,7 +3875,9 @@ function openRecordDetail(tableKey, recordId, options = {}) {
   if (!options.skipHistory) {
     state.detailHistory.push(snapshotCurrentView());
   }
-  state.activeNav = tableKey;
+  if (!options.preserveNav) {
+    state.activeNav = tableKey;
+  }
   state.activeTable = tableKey;
   state.detailTableKey = tableKey;
   state.detailRecordId = recordId;
@@ -3336,7 +3906,7 @@ function getActiveDetailRecord() {
 
 function renderHeroPanel() {
   const detail = getActiveDetailRecord();
-  if (detail && detail.table.key === state.activeNav) {
+  if (detail && (detail.table.key === state.activeNav || state.activeNav === "gantt")) {
     el.heroPanel.innerHTML = renderRecordDetail(detail.table, detail.record);
     el.heroPanel.querySelectorAll("[data-detail-action]").forEach((button) => {
       button.addEventListener("click", async () => {
@@ -3398,6 +3968,11 @@ function renderHeroPanel() {
       </section>
     `;
     bindAdminWorkspaceEvents();
+    return;
+  }
+
+  if (state.activeNav === "gantt") {
+    el.heroPanel.innerHTML = renderGanttChart();
     return;
   }
 
@@ -4302,6 +4877,61 @@ function bindEvents() {
     }
   });
 
+  el.heroPanel.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target.closest("[data-gantt-shift],[data-gantt-today],[data-gantt-month-shift],[data-gantt-open]") : null;
+    if (!(target instanceof HTMLElement) || state.activeNav !== "gantt") return;
+
+    if (target.dataset.ganttShift) {
+      const shift = Number(target.dataset.ganttShift || 0);
+      const nextStart = addDays(getGanttWeekStart(), shift);
+      setGanttWeekStart(nextStart);
+      syncGanttUrl(nextStart);
+      renderHeroPanel();
+      return;
+    }
+
+    if (target.dataset.ganttToday) {
+      const nextStart = getCenteredWeekStart(getTodayKey());
+      setGanttWeekStart(nextStart);
+      syncGanttUrl(nextStart);
+      renderHeroPanel();
+      return;
+    }
+
+    if (target.dataset.ganttMonthShift) {
+      const shift = Number(target.dataset.ganttMonthShift || 0);
+      const nextStart = addMonths(getGanttWeekStart(), shift);
+      setGanttWeekStart(nextStart);
+      syncGanttUrl(nextStart);
+      renderHeroPanel();
+      return;
+    }
+
+    if (target.dataset.ganttOpen) {
+      const recordId = target.dataset.ganttOpen;
+      const tableKey = target.dataset.ganttTable;
+      if (!recordId || !tableKey) return;
+      openRecordDetail(tableKey, recordId, { preserveNav: true });
+    }
+  });
+
+  el.heroPanel.addEventListener("change", (event) => {
+    const target = event.target instanceof HTMLInputElement ? event.target : null;
+    if (!target?.dataset.ganttDate || state.activeNav !== "gantt") return;
+
+    const nextStart = getDateAtDayStart(target.value);
+    if (!nextStart) return;
+    setGanttWeekStart(nextStart);
+    syncGanttUrl(nextStart);
+    renderHeroPanel();
+  });
+
+  window.addEventListener("popstate", () => {
+    applyUrlState();
+    renderSidebarNav();
+    renderHeroPanel();
+  });
+
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (el.confirmModal.classList.contains("open")) {
@@ -4343,6 +4973,7 @@ async function init() {
   el.confirmCancelButton = document.getElementById("confirm-cancel");
   el.confirmDeleteButton = document.getElementById("confirm-delete");
 
+  applyUrlState();
   bindEvents();
   renderAll();
   hydrateDataFromSupabase()
