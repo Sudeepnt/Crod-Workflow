@@ -2612,17 +2612,8 @@ function renderSidebarNav() {
       renderSidebarNav();
       if (sidebarKind === "table") {
         state.activeTable = sidebarKey;
-        renderHeroPanel();
       }
-      if (sidebarKind === "dashboard") {
-        renderHeroPanel();
-      }
-      if (sidebarKind === "gantt") {
-        renderHeroPanel();
-      }
-      if (sidebarKind === "admin") {
-        renderHeroPanel();
-      }
+      renderHeroPanel();
     });
   });
 }
@@ -3234,9 +3225,10 @@ function renderGanttChart() {
     const left = visibleSpan.left;
     const width = visibleSpan.width;
     const click = item.tableKey ? ` onclick="openGanttRecord('${escapeHtml(item.tableKey)}', '${escapeHtml(item.id)}')"` : "";
+    const cardText = `${type === "event" ? "event" : type === "task" ? "task" : "project"}: ${item.key || item.label}`;
     return `
       <button class="gantt-canvas-bar gantt-canvas-bar-${type} ${item.color ? `gantt-color-${item.color}` : ""}" type="button" style="--bar-left:${left}%; --bar-width:${width}%;"${click}>
-        <span>${type === "event" ? "◆ " : ""}${escapeHtml(item.label)}</span>
+        <span>${escapeHtml(cardText)}</span>
       </button>
     `;
   };
