@@ -1021,6 +1021,8 @@ const state = {
   search: "",
   activeTable: "projects",
   activeNav: "dashboard",
+  assetsView: "table",
+  assetMapKeyEditorOpen: false,
   modalMode: "create",
   modalEntity: "table",
   editingRecordId: null,
@@ -1034,10 +1036,18 @@ const state = {
   taskExpanded: {},
   ganttWeekStart: null,
   ganttScale: "week",
+  googleMapsApiKey: "",
 };
 
 const el = {};
 let confirmResolve = null;
+const GOOGLE_MAPS_API_KEY_STORAGE_KEY = "atit.googleMapsApiKey";
+const googleMapsRuntime = {
+  loaderPromise: null,
+  map: null,
+  markers: [],
+  infoWindow: null,
+};
 
 const arrayFields = new Set(["verticals", "tags"]);
 const hierarchyAttachmentTables = new Set(["tasks", "documents", "assets", "events", "transactions"]);
@@ -1574,6 +1584,152 @@ function getFilteredAndSortedRows(table) {
   });
 
   return rows;
+}
+
+function getGoogleMapsApiKey() {
+  const runtimeKey = String(globalThis.ATIT_GOOGLE_MAPS_API_KEY ?? globalThis.GOOGLE_MAPS_API_KEY ?? "").trim();
+  if (runtimeKey) return runtimeKey;
+
+  try {
+    return String(globalThis.localStorage?.getItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+function persistGoogleMapsApiKey(value) {
+  const normalized = String(value ?? "").trim();
+  state.googleMapsApiKey = normalized;
+  try {
+    if (normalized) globalThis.localStorage?.setItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY, normalized);
+    else globalThis.localStorage?.removeItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures and keep the in-memory value.
+  }
+}
+
+function hasValidAssetCoordinates(row) {
+  const lat = Number(row?.lat);
+  const lng = Number(row?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
+  if (lat === 0 && lng === 0) return false;
+  return true;
+}
+
+function getMappableAssets(rows) {
+  return rows.filter((row) => hasValidAssetCoordinates(row));
+}
+
+function getUnmappedAssets(rows) {
+  return rows.filter((row) => !hasValidAssetCoordinates(row));
+}
+
+function resetAssetMap() {
+  googleMapsRuntime.markers.forEach((marker) => {
+    if (marker?.setMap) marker.setMap(null);
+  });
+  googleMapsRuntime.markers = [];
+  googleMapsRuntime.map = null;
+  googleMapsRuntime.infoWindow = null;
+}
+
+function loadGoogleMapsApi() {
+  if (globalThis.google?.maps) return Promise.resolve(globalThis.google.maps);
+  if (googleMapsRuntime.loaderPromise) return googleMapsRuntime.loaderPromise;
+
+  const apiKey = getGoogleMapsApiKey();
+  if (!apiKey) {
+    return Promise.reject(new Error("Google Maps API key not configured"));
+  }
+
+  googleMapsRuntime.loaderPromise = new Promise((resolve, reject) => {
+    const callbackName = `initGoogleMaps${Date.now()}`;
+    const script = document.createElement("script");
+
+    globalThis[callbackName] = () => {
+      delete globalThis[callbackName];
+      resolve(globalThis.google.maps);
+    };
+
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      delete globalThis[callbackName];
+      googleMapsRuntime.loaderPromise = null;
+      reject(new Error("Google Maps failed to load"));
+    };
+
+    document.head.appendChild(script);
+  });
+
+  return googleMapsRuntime.loaderPromise;
+}
+
+function focusAssetMarker(recordId) {
+  const marker = googleMapsRuntime.markers.find((entry) => entry.assetId === recordId);
+  if (!marker || !googleMapsRuntime.map || !googleMapsRuntime.infoWindow) return;
+
+  googleMapsRuntime.map.panTo(marker.getPosition());
+  googleMapsRuntime.map.setZoom(Math.max(googleMapsRuntime.map.getZoom() ?? 14, 14));
+  globalThis.google?.maps?.event?.trigger(marker, "click");
+}
+
+async function initializeAssetMap(rows) {
+  const canvas = document.getElementById("asset-map-canvas");
+  if (!canvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
+
+  const mappableAssets = getMappableAssets(rows);
+  if (!mappableAssets.length) {
+    resetAssetMap();
+    return;
+  }
+
+  const maps = await loadGoogleMapsApi();
+  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map") return;
+
+  resetAssetMap();
+  const bounds = new maps.LatLngBounds();
+  googleMapsRuntime.map = new maps.Map(canvas, {
+    center: { lat: Number(mappableAssets[0].lat), lng: Number(mappableAssets[0].lng) },
+    zoom: 12,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: false,
+  });
+  googleMapsRuntime.infoWindow = new maps.InfoWindow();
+
+  mappableAssets.forEach((asset) => {
+    const marker = new maps.Marker({
+      map: googleMapsRuntime.map,
+      position: { lat: Number(asset.lat), lng: Number(asset.lng) },
+      title: String(asset.name || "Asset"),
+    });
+    marker.assetId = asset.id;
+    marker.addListener("click", () => {
+      googleMapsRuntime.infoWindow?.setContent(`
+        <div class="asset-map-info-window">
+          <strong>${escapeHtml(asset.name || "Asset")}</strong>
+          <div>${escapeHtml(asset.type || "Unknown type")}</div>
+          <div>${escapeHtml(asset.address || `${asset.lat}, ${asset.lng}`)}</div>
+        </div>
+      `);
+      googleMapsRuntime.infoWindow?.open({
+        anchor: marker,
+        map: googleMapsRuntime.map,
+      });
+    });
+    googleMapsRuntime.markers.push(marker);
+    bounds.extend(marker.getPosition());
+  });
+
+  if (mappableAssets.length === 1) {
+    googleMapsRuntime.map.setCenter(bounds.getCenter());
+    googleMapsRuntime.map.setZoom(14);
+  } else {
+    googleMapsRuntime.map.fitBounds(bounds, 64);
+  }
 }
 
 function getRelationConfig(fieldName) {
@@ -3763,6 +3919,14 @@ function bindTaskExpandActions() {
   });
 }
 
+function refreshTableView(table) {
+  if (table.key === "assets" && state.assetsView === "map") {
+    renderHeroPanel();
+    return;
+  }
+  updateRecordsTable(table);
+}
+
 function updateRecordsTable(table) {
   const rows = getFilteredAndSortedRows(table);
   el.recordsCount.textContent = `${rows.length} records`;
@@ -3789,12 +3953,82 @@ function updateRecordsTable(table) {
   bindRecordOpenActions(table);
 }
 
+function bindAssetMapActions(rows) {
+  document.querySelectorAll("[data-assets-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextView = button.dataset.assetsView === "map" ? "map" : "table";
+      if (state.assetsView === nextView) return;
+      state.assetsView = nextView;
+      state.detailTableKey = null;
+      state.detailRecordId = null;
+      renderHeroPanel();
+    });
+  });
+
+  if (state.activeNav !== "assets" || state.assetsView !== "map") return;
+
+  document.getElementById("asset-map-key-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const input = document.getElementById("asset-map-key-input");
+    const value = input instanceof HTMLInputElement ? input.value : "";
+    persistGoogleMapsApiKey(value);
+    state.assetMapKeyEditorOpen = false;
+    googleMapsRuntime.loaderPromise = null;
+    renderHeroPanel();
+  });
+
+  document.querySelector("[data-asset-map-manage-key]")?.addEventListener("click", () => {
+    state.assetMapKeyEditorOpen = !state.assetMapKeyEditorOpen;
+    renderHeroPanel();
+  });
+
+  document.querySelector("[data-asset-map-cancel-key]")?.addEventListener("click", () => {
+    state.assetMapKeyEditorOpen = false;
+    renderHeroPanel();
+  });
+
+  document.querySelector("[data-asset-map-clear-key]")?.addEventListener("click", () => {
+    persistGoogleMapsApiKey("");
+    state.assetMapKeyEditorOpen = false;
+    googleMapsRuntime.loaderPromise = null;
+    renderHeroPanel();
+  });
+
+  document.querySelectorAll("[data-asset-map-open]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recordId = button.getAttribute("data-asset-map-open");
+      if (!recordId) return;
+      openRecordDetail("assets", recordId, { preserveNav: true });
+    });
+  });
+
+  document.querySelectorAll("[data-asset-map-focus]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const recordId = button.getAttribute("data-asset-map-focus");
+      if (!recordId) return;
+      focusAssetMarker(recordId);
+    });
+  });
+
+  initializeAssetMap(rows).catch((error) => {
+    const canvas = document.getElementById("asset-map-canvas");
+    if (!canvas) return;
+    canvas.outerHTML = `
+      <div class="asset-map-empty">
+        <strong>Map failed to load</strong>
+        <p>${escapeHtml(error?.message ?? "Unknown error")}</p>
+      </div>
+    `;
+  });
+}
+
 function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptions) {
   const showVentureFilter = ventureOptions.length > 0;
   const showProjectFilter = projectOptions.length > 0;
   const documentTypeOptions = table.key === "documents" ? getFilterOptions("documents", "type") : [];
   const documentStatusOptions = table.key === "documents" ? getFilterOptions("documents", "status") : [];
   const searchPlaceholder = `Search ${escapeHtml(table.title.toLowerCase())}...`;
+  const showAssetsViewToggle = table.key === "assets";
 
   return `
     <div class="records-toolbar">
@@ -3844,7 +4078,105 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
             </select>
           </label>
         </div>
+        ${showAssetsViewToggle ? `
+          <div class="records-view-toggle" role="tablist" aria-label="Assets views">
+            <button class="records-view-button ${state.assetsView === "table" ? "active" : ""}" type="button" data-assets-view="table">Table</button>
+            <button class="records-view-button ${state.assetsView === "map" ? "active" : ""}" type="button" data-assets-view="map">View in map</button>
+          </div>
+        ` : ""}
         <button id="new-record-button" class="new-record-button" type="button">+</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAssetMapPanel(rows) {
+  const mappableAssets = getMappableAssets(rows);
+  const unmappedAssets = getUnmappedAssets(rows);
+  const apiKey = state.googleMapsApiKey || getGoogleMapsApiKey();
+  const keyControls = apiKey ? `
+    <div class="asset-map-controls">
+      <button class="record-action-button" type="button" data-asset-map-manage-key>${state.assetMapKeyEditorOpen ? "Hide key form" : "Update API key"}</button>
+      <button class="record-action-button" type="button" data-asset-map-clear-key>Clear key</button>
+    </div>
+  ` : "";
+  const keyForm = !apiKey || state.assetMapKeyEditorOpen
+    ? `
+      <form id="asset-map-key-form" class="asset-map-key-form">
+        <input id="asset-map-key-input" class="records-search asset-map-key-input" type="password" placeholder="Paste Google Maps API key" autocomplete="off" />
+        <div class="asset-map-key-actions">
+          <button class="record-action-button asset-map-save-button" type="submit">Save key</button>
+          ${apiKey ? `<button class="record-action-button" type="button" data-asset-map-cancel-key>Edit later</button>` : `<button class="record-action-button" type="button" data-asset-map-clear-key disabled>Clear</button>`}
+        </div>
+      </form>
+    `
+    : "";
+  const mapBody = !apiKey
+    ? `
+      <div class="asset-map-empty">
+        <strong>Google Maps API key required</strong>
+        <p>Save your key once and this view will start plotting asset pins automatically.</p>
+        ${keyForm}
+      </div>
+    `
+    : !mappableAssets.length
+      ? `
+        <div class="asset-map-empty">
+          <strong>No mapped assets yet</strong>
+          <p>Add valid latitude and longitude values to asset records. Assets with coordinates set to 0, 0 are ignored.</p>
+          ${keyControls}
+          ${keyForm}
+        </div>
+      `
+      : `
+        <div class="asset-map-stage-inner">
+          <div id="asset-map-canvas" class="asset-map-canvas" aria-label="Asset locations map"></div>
+          ${keyControls}
+          ${keyForm}
+        </div>
+      `;
+
+  return `
+    <div class="asset-map-shell">
+      <div class="asset-map-summary">
+        <article class="asset-map-stat">
+          <span>Visible assets</span>
+          <strong>${rows.length}</strong>
+        </article>
+        <article class="asset-map-stat">
+          <span>Pinned on map</span>
+          <strong>${mappableAssets.length}</strong>
+        </article>
+        <article class="asset-map-stat">
+          <span>Missing coordinates</span>
+          <strong>${unmappedAssets.length}</strong>
+        </article>
+      </div>
+      <div class="asset-map-layout">
+        <section class="asset-map-stage">
+          ${mapBody}
+        </section>
+        <aside class="asset-map-list">
+          <div class="asset-map-list-head">
+            <h3>Visible assets</h3>
+            <p>${mappableAssets.length} with coordinates</p>
+          </div>
+          <div class="asset-map-list-body">
+            ${rows.map((asset) => `
+              <article class="asset-map-card ${hasValidAssetCoordinates(asset) ? "" : "is-unmapped"}">
+                <div class="asset-map-card-copy">
+                  <strong>${escapeHtml(asset.name || "Untitled asset")}</strong>
+                  <span>${escapeHtml(asset.type || "Unknown type")}</span>
+                  <span>${escapeHtml(asset.address || `${asset.lat ?? "—"}, ${asset.lng ?? "—"}`)}</span>
+                </div>
+                <div class="asset-map-card-actions">
+                  <button class="record-action-button" type="button" data-asset-map-open="${escapeHtml(asset.id)}">Open</button>
+                  <button class="record-action-button" type="button" data-asset-map-focus="${escapeHtml(asset.id)}" ${hasValidAssetCoordinates(asset) ? "" : "disabled"}>Pin</button>
+                </div>
+              </article>
+            `).join("") || `<div class="asset-map-empty-list">No assets match the current filters.</div>`}
+          </div>
+        </aside>
       </div>
     </div>
   `;
@@ -3862,6 +4194,15 @@ function renderRecordsTable(table) {
       ${toolbar}
       <div id="records-content" class="people-records">
         ${renderPeopleRecords(rows)}
+      </div>
+    `;
+  }
+
+  if (table.key === "assets" && state.assetsView === "map") {
+    return `
+      ${toolbar}
+      <div id="records-content" class="asset-map-records">
+        ${renderAssetMapPanel(rows)}
       </div>
     `;
   }
@@ -3920,6 +4261,7 @@ function snapshotCurrentView() {
   return {
     activeNav: state.activeNav,
     activeTable: state.activeTable,
+    assetsView: state.assetsView,
     detailTableKey: state.detailTableKey,
     detailRecordId: state.detailRecordId,
     detailTreeOpen: state.detailTreeOpen,
@@ -3930,6 +4272,7 @@ function restoreView(view = null) {
   const targetView = view ?? {
     activeNav: "dashboard",
     activeTable: state.activeTable,
+    assetsView: state.assetsView,
     detailTableKey: null,
     detailRecordId: null,
     detailTreeOpen: false,
@@ -3937,6 +4280,7 @@ function restoreView(view = null) {
 
   state.activeNav = targetView.activeNav;
   state.activeTable = targetView.activeTable;
+  state.assetsView = targetView.assetsView ?? "table";
   state.detailTableKey = targetView.detailTableKey;
   state.detailRecordId = targetView.detailRecordId;
   state.detailTreeOpen = targetView.detailTreeOpen;
@@ -3989,6 +4333,9 @@ function getActiveDetailRecord() {
 function renderHeroPanel() {
   const detail = getActiveDetailRecord();
   el.heroPanel.classList.toggle("hero-panel-gantt", state.activeNav === "gantt" && !detail);
+  if (state.activeNav !== "assets" || state.assetsView !== "map" || detail) {
+    resetAssetMap();
+  }
   if (detail && (detail.table.key === state.activeNav || state.activeNav === "gantt")) {
     el.heroPanel.innerHTML = renderRecordDetail(detail.table, detail.record);
     el.heroPanel.querySelectorAll("[data-detail-action]").forEach((button) => {
@@ -4069,41 +4416,42 @@ function renderHeroPanel() {
   el.newRecordButton = document.getElementById("new-record-button");
   el.recordsSearch.addEventListener("input", (event) => {
     state.search = event.target.value;
-    updateRecordsTable(table);
+    refreshTableView(table);
   });
   el.recordsVentureFilter = document.getElementById("records-venture-filter");
   el.recordsProjectFilter = document.getElementById("records-project-filter");
   el.recordsTypeFilter = document.getElementById("records-type-filter");
   el.recordsStatusFilter = document.getElementById("records-status-filter");
   el.recordsOrderFilter = document.getElementById("records-order-filter");
+  bindAssetMapActions(getFilteredAndSortedRows(table));
   if (el.recordsVentureFilter) {
     el.recordsVentureFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).venture = event.target.value;
-      updateRecordsTable(table);
+      refreshTableView(table);
     });
   }
   if (el.recordsProjectFilter) {
     el.recordsProjectFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).project = event.target.value;
-      updateRecordsTable(table);
+      refreshTableView(table);
     });
   }
   if (el.recordsTypeFilter) {
     el.recordsTypeFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).type = event.target.value;
-      updateRecordsTable(table);
+      refreshTableView(table);
     });
   }
   if (el.recordsStatusFilter) {
     el.recordsStatusFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).status = event.target.value;
-      updateRecordsTable(table);
+      refreshTableView(table);
     });
   }
   if (el.recordsOrderFilter) {
     el.recordsOrderFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).order = event.target.value;
-      updateRecordsTable(table);
+      refreshTableView(table);
     });
   }
   el.newRecordButton.addEventListener("click", () => openForm(table.key));
@@ -5120,6 +5468,7 @@ async function init() {
   el.confirmCancelButton = document.getElementById("confirm-cancel");
   el.confirmDeleteButton = document.getElementById("confirm-delete");
 
+  state.googleMapsApiKey = getGoogleMapsApiKey();
   applyUrlState();
   bindEvents();
   renderAll();
