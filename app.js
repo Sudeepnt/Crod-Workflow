@@ -1268,6 +1268,7 @@ const state = {
   assetsView: "table",
   assetMapKeyEditorOpen: false,
   assetMapExpanded: false,
+  assetMapRenderToken: 0,
   modalMode: "create",
   modalEntity: "table",
   editingRecordId: null,
@@ -1296,6 +1297,7 @@ const googleMapsRuntime = {
   loaderPromise: null,
   map: null,
   markers: [],
+  labels: [],
   infoWindow: null,
 };
 const leafletRuntime = {
@@ -1966,6 +1968,26 @@ function getAssetMarkerLabelText(asset) {
   return name.length > 28 ? `${name.slice(0, 28).trim()}...` : name;
 }
 
+function getAssetMarkerStatusText(asset) {
+  return String(asset?.status ?? "").trim();
+}
+
+function getAssetMarkerStatusClass(asset) {
+  const normalized = getStatusClassName(getAssetMarkerStatusText(asset));
+  return normalized ? ` asset-map-label-status-${normalized}` : "";
+}
+
+function getAssetMarkerLabelMarkup(asset) {
+  const name = escapeHtml(getAssetMarkerLabelText(asset));
+  const status = escapeHtml(getAssetMarkerStatusText(asset));
+  return `
+    <span class="asset-map-label-copy">
+      <span class="asset-map-label-name">${name}</span>
+      ${status ? `<span class="asset-map-label-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
+    </span>
+  `;
+}
+
 function setAssetMapLoading(isLoading, message = "Loading map...") {
   const shell = document.querySelector(".asset-map-stage-inner");
   const status = document.getElementById("asset-map-loading");
@@ -1977,6 +1999,11 @@ function setAssetMapLoading(isLoading, message = "Loading map...") {
     const copy = status.querySelector("span");
     if (copy) copy.textContent = message;
   }
+}
+
+function shouldUseLeafletMapFirst() {
+  const host = String(globalThis.location?.hostname ?? "").trim().toLowerCase();
+  return host === "127.0.0.1" || host === "localhost";
 }
 
 function createLeafletAssetIcon(L) {
@@ -1994,11 +2021,53 @@ function createLeafletAssetIcon(L) {
   });
 }
 
+function createGoogleMapLabelOverlay(maps, map, asset) {
+  class AssetMapLabelOverlay extends maps.OverlayView {
+    constructor() {
+      super();
+      this.position = new maps.LatLng(getAssetLatitude(asset), getAssetLongitude(asset));
+      this.element = null;
+    }
+
+    onAdd() {
+      const element = document.createElement("div");
+      element.className = "asset-map-marker-label";
+      element.innerHTML = getAssetMarkerLabelMarkup(asset);
+      this.element = element;
+      const panes = this.getPanes();
+      panes?.overlayMouseTarget?.appendChild(element);
+    }
+
+    draw() {
+      if (!this.element) return;
+      const projection = this.getProjection();
+      if (!projection) return;
+      const point = projection.fromLatLngToDivPixel(this.position);
+      if (!point) return;
+      this.element.style.left = `${point.x}px`;
+      this.element.style.top = `${point.y}px`;
+    }
+
+    onRemove() {
+      this.element?.remove();
+      this.element = null;
+    }
+  }
+
+  const overlay = new AssetMapLabelOverlay();
+  overlay.setMap(map);
+  return overlay;
+}
+
 function resetAssetMap() {
   googleMapsRuntime.markers.forEach((marker) => {
     if (marker?.setMap) marker.setMap(null);
   });
   googleMapsRuntime.markers = [];
+  googleMapsRuntime.labels.forEach((label) => {
+    if (label?.setMap) label.setMap(null);
+  });
+  googleMapsRuntime.labels = [];
   googleMapsRuntime.map = null;
   googleMapsRuntime.infoWindow = null;
   leafletRuntime.markers.forEach((marker) => {
@@ -2096,6 +2165,7 @@ function focusAssetMarker(recordId) {
 }
 
 async function initializeAssetMap(rows) {
+  const renderToken = ++state.assetMapRenderToken;
   const canvas = document.getElementById("asset-map-canvas");
   if (!canvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
   setAssetMapLoading(true, "Loading map...");
@@ -2108,7 +2178,7 @@ async function initializeAssetMap(rows) {
   }
 
   const maps = await loadGoogleMapsApi();
-  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map") return;
+  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
 
   resetAssetMap();
   const bounds = new maps.LatLngBounds();
@@ -2126,10 +2196,6 @@ async function initializeAssetMap(rows) {
       map: googleMapsRuntime.map,
       position: { lat: getAssetLatitude(asset), lng: getAssetLongitude(asset) },
       title: String(asset.name || "Asset"),
-      label: {
-        text: getAssetMarkerLabelText(asset),
-        className: "asset-map-marker-label",
-      },
       icon: {
         path: maps.SymbolPath.CIRCLE,
         scale: 7,
@@ -2155,6 +2221,7 @@ async function initializeAssetMap(rows) {
       });
     });
     googleMapsRuntime.markers.push(marker);
+    googleMapsRuntime.labels.push(createGoogleMapLabelOverlay(maps, googleMapsRuntime.map, asset));
     bounds.extend(marker.getPosition());
   });
 
@@ -2166,7 +2233,7 @@ async function initializeAssetMap(rows) {
   }
 
   globalThis.setTimeout(() => {
-    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map") return;
+    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     globalThis.google?.maps?.event?.trigger(googleMapsRuntime.map, "resize");
     if (mappableAssets.length === 1) {
       googleMapsRuntime.map.setCenter(bounds.getCenter());
@@ -2177,7 +2244,7 @@ async function initializeAssetMap(rows) {
   }, 250);
 
   globalThis.setTimeout(() => {
-    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map") return;
+    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     const activeCanvas = document.getElementById("asset-map-canvas");
     const visibleText = String(activeCanvas?.textContent ?? "").trim();
     if (visibleText.includes("Oops! Something went wrong.")) return;
@@ -2186,7 +2253,7 @@ async function initializeAssetMap(rows) {
 
   globalThis.setTimeout(() => {
     const activeCanvas = document.getElementById("asset-map-canvas");
-    if (!activeCanvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
+    if (!activeCanvas || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     const visibleText = String(activeCanvas.textContent ?? "").trim();
     if (!visibleText.includes("Oops! Something went wrong.")) return;
     setAssetMapLoading(true, "Switching to backup map...");
@@ -2198,6 +2265,7 @@ async function initializeAssetMap(rows) {
 }
 
 async function initializeLeafletAssetMap(rows) {
+  const renderToken = ++state.assetMapRenderToken;
   const canvas = document.getElementById("asset-map-canvas");
   if (!canvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
   setAssetMapLoading(true, "Loading map...");
@@ -2210,7 +2278,7 @@ async function initializeLeafletAssetMap(rows) {
   }
 
   const L = await loadLeafletAssets();
-  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map") return;
+  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
 
   resetAssetMap();
   leafletRuntime.map = L.map(canvas, {
@@ -2237,7 +2305,7 @@ async function initializeLeafletAssetMap(rows) {
         <div>${escapeHtml(getAssetMapAddress(asset))}</div>
       </div>
     `);
-    marker.bindTooltip(escapeHtml(getAssetMarkerLabelText(asset)), {
+    marker.bindTooltip(getAssetMarkerLabelMarkup(asset), {
       permanent: true,
       direction: "top",
       offset: [0, -14],
@@ -2255,7 +2323,7 @@ async function initializeLeafletAssetMap(rows) {
   }
 
   globalThis.setTimeout(() => {
-    if (!leafletRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map") return;
+    if (!leafletRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     leafletRuntime.map.invalidateSize();
     if (bounds.length === 1) {
       leafletRuntime.map.setView(bounds[0], 14);
@@ -3420,6 +3488,7 @@ function renderSidebarNav() {
         state.isMobileNavOpen = false;
         applySidebarState();
       }
+      syncCurrentViewUrl();
       renderMeta();
       renderHeroPanel();
     });
@@ -3487,6 +3556,8 @@ function renderBoard() {
         state.activeTable = card.dataset.openList;
         state.search = "";
         clearDetailHistory();
+        syncCurrentViewUrl();
+        renderMeta();
         renderSidebarNav();
         renderHeroPanel();
       });
@@ -3537,11 +3608,13 @@ function logoutApp() {
   state.isAuthenticated = false;
   setStoredAuthState(false);
   state.activeNav = "dashboard";
+  state.assetsView = "table";
   state.search = "";
   state.detailTableKey = null;
   state.detailRecordId = null;
   state.detailTreeOpen = false;
   clearDetailHistory();
+  syncCurrentViewUrl(true);
   renderLoginScreen("");
   renderAll();
 }
@@ -3649,6 +3722,43 @@ function syncGanttUrl(startDate, replace = false) {
   window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
 }
 
+function isKnownSidebarView(value) {
+  return sidebarItems.some((item) => item.key === value);
+}
+
+function isTableView(value) {
+  return tables.some((table) => table.key === value);
+}
+
+function getCurrentViewHref() {
+  const url = new URL(window.location.href);
+  const activeView = isKnownSidebarView(state.activeNav) ? state.activeNav : "dashboard";
+  url.searchParams.set("view", activeView);
+
+  if (activeView === "gantt") {
+    url.searchParams.set("gantt", getLocalDateKey(getGanttWeekStart()));
+    url.searchParams.set("scale", getGanttScale());
+  } else {
+    url.searchParams.delete("gantt");
+    url.searchParams.delete("scale");
+  }
+
+  if (activeView === "assets") {
+    url.searchParams.set("assets_view", state.assetsView === "map" ? "map" : "table");
+  } else {
+    url.searchParams.delete("assets_view");
+  }
+
+  return `${url.pathname}${url.search}`;
+}
+
+function syncCurrentViewUrl(replace = false) {
+  const nextUrl = getCurrentViewHref();
+  const currentUrl = `${window.location.pathname}${window.location.search}`;
+  if (nextUrl === currentUrl) return;
+  window.history[replace ? "replaceState" : "pushState"]({}, "", nextUrl);
+}
+
 function shiftGanttWindow(days) {
   const step = Number(days) || 0;
   const nextStart = getGanttScale() === "month"
@@ -3698,10 +3808,17 @@ function applyUrlState() {
   const view = params.get("view");
   const gantt = params.get("gantt");
   const scale = params.get("scale");
+  const assetsView = params.get("assets_view");
 
-  if (view === "gantt") {
-    state.activeNav = "gantt";
+  state.activeNav = isKnownSidebarView(view) ? view : "dashboard";
+  if (isTableView(state.activeNav)) {
+    state.activeTable = state.activeNav;
   }
+  state.assetsView = assetsView === "map" ? "map" : "table";
+  state.detailTableKey = null;
+  state.detailRecordId = null;
+  state.detailTreeOpen = false;
+  clearDetailHistory();
 
   if (gantt) {
     state.ganttWeekStart = gantt;
@@ -4662,6 +4779,7 @@ function bindAssetMapActions(rows) {
       state.assetMapExpanded = false;
       state.detailTableKey = null;
       state.detailRecordId = null;
+      syncCurrentViewUrl();
       renderHeroPanel();
     });
   });
@@ -4681,18 +4799,31 @@ function bindAssetMapActions(rows) {
     renderHeroPanel();
   });
 
-  initializeAssetMap(rows).catch((error) => {
-    console.error("Google Maps failed, falling back to Leaflet", error);
-    initializeLeafletAssetMap(rows).catch((fallbackError) => {
-      const canvas = document.getElementById("asset-map-canvas");
-      if (!canvas) return;
-      canvas.outerHTML = `
-        <div class="asset-map-empty">
-          <strong>Map failed to load</strong>
-          <p>${escapeHtml(fallbackError?.message ?? error?.message ?? "Unknown error")}</p>
-        </div>
-      `;
+  const initializeMap = shouldUseLeafletMapFirst()
+    ? initializeLeafletAssetMap(rows)
+    : initializeAssetMap(rows).catch((error) => {
+      console.error("Google Maps failed, falling back to Leaflet", error);
+      return initializeLeafletAssetMap(rows).catch((fallbackError) => {
+        const canvas = document.getElementById("asset-map-canvas");
+        if (!canvas) return;
+        canvas.outerHTML = `
+          <div class="asset-map-empty">
+            <strong>Map failed to load</strong>
+            <p>${escapeHtml(fallbackError?.message ?? error?.message ?? "Unknown error")}</p>
+          </div>
+        `;
+      });
     });
+
+  Promise.resolve(initializeMap).catch((error) => {
+    const canvas = document.getElementById("asset-map-canvas");
+    if (!canvas) return;
+    canvas.outerHTML = `
+      <div class="asset-map-empty">
+        <strong>Map failed to load</strong>
+        <p>${escapeHtml(error?.message ?? "Unknown error")}</p>
+      </div>
+    `;
   });
 }
 
@@ -4983,7 +5114,9 @@ function restoreView(view = null) {
   state.detailTableKey = targetView.detailTableKey;
   state.detailRecordId = targetView.detailRecordId;
   state.detailTreeOpen = targetView.detailTreeOpen;
+  syncCurrentViewUrl(true);
   renderSidebarNav();
+  renderMeta();
   renderHeroPanel();
   if (state.activeNav === "assets" && state.assetsView === "map" && !state.detailRecordId) {
     globalThis.requestAnimationFrame(() => {
@@ -5013,6 +5146,7 @@ function openRecordDetail(tableKey, recordId, options = {}) {
   state.detailRecordId = recordId;
   state.detailTreeOpen = false;
   renderSidebarNav();
+  renderMeta();
   renderHeroPanel();
 }
 
@@ -5038,6 +5172,7 @@ function renderHeroPanel() {
   const detail = getActiveDetailRecord();
   el.heroPanel.classList.toggle("hero-panel-gantt", state.activeNav === "gantt" && !detail);
   if (state.activeNav !== "assets" || state.assetsView !== "map" || detail) {
+    state.assetMapRenderToken += 1;
     resetAssetMap();
   }
   if (detail && (detail.table.key === state.activeNav || state.activeNav === "gantt")) {
@@ -6107,6 +6242,7 @@ function bindEvents() {
       state.isMobileNavOpen = false;
       applySidebarState();
     }
+    syncCurrentViewUrl();
     renderMeta();
     renderSidebarNav();
     renderHeroPanel();
@@ -6217,6 +6353,7 @@ function bindEvents() {
 
   window.addEventListener("popstate", () => {
     applyUrlState();
+    renderMeta();
     renderSidebarNav();
     renderHeroPanel();
   });
