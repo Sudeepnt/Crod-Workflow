@@ -2215,6 +2215,8 @@ async function initializeAssetMap(rows) {
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: false,
+    gestureHandling: "greedy",
+    draggable: true,
   });
   googleMapsRuntime.infoWindow = new maps.InfoWindow();
 
@@ -2304,6 +2306,10 @@ async function initializeLeafletAssetMap(rows) {
   leafletRuntime.map = L.map(canvas, {
     zoomControl: true,
     attributionControl: true,
+    dragging: true,
+    touchZoom: true,
+    scrollWheelZoom: false,
+    tap: true,
   });
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {

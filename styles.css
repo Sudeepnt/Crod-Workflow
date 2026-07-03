@@ -1805,6 +1805,8 @@ input[type="search"] {
   background:
     linear-gradient(135deg, rgba(11, 11, 11, 0.04) 0%, rgba(11, 11, 11, 0) 100%),
     #eef3ef;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .asset-map-loading {
