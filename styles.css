@@ -2122,9 +2122,9 @@ input[type="search"] {
   position: absolute;
   inset: 0;
   border-radius: 999px 999px 999px 0;
-  background: linear-gradient(180deg, #4d8fcc 0%, #2f6fb1 100%);
+  background: linear-gradient(180deg, var(--asset-map-marker-color, #2f6fb1) 0%, color-mix(in srgb, var(--asset-map-marker-color, #2f6fb1) 78%, black 22%) 100%);
   transform: rotate(-45deg);
-  box-shadow: 0 8px 20px rgba(16, 52, 96, 0.24);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--asset-map-marker-color, #2f6fb1) 28%, black 72%);
 }
 
 .asset-map-leaflet-marker-core {
@@ -2133,8 +2133,8 @@ input[type="search"] {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18);
+  background: var(--asset-map-marker-color, #2f6fb1);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.92);
 }
 
 @keyframes asset-map-spin {

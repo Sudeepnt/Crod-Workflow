@@ -1977,6 +1977,18 @@ function getAssetMarkerStatusClass(asset) {
   return normalized ? ` asset-map-label-status-${normalized}` : "";
 }
 
+function getAssetStatusColor(status) {
+  const normalized = getStatusClassName(status);
+  const colors = {
+    owned: "#2f9e44",
+    "under-development": "#f08c00",
+    "under-acquisition": "#2563eb",
+    operational: "#0f766e",
+    disposed: "#c92a2a",
+  };
+  return colors[normalized] ?? "#2f6fb1";
+}
+
 function getAssetMarkerLabelMarkup(asset) {
   const name = escapeHtml(getAssetMarkerLabelText(asset));
   const status = escapeHtml(getAssetMarkerStatusText(asset));
@@ -2006,11 +2018,11 @@ function shouldUseLeafletMapFirst() {
   return host === "127.0.0.1" || host === "localhost";
 }
 
-function createLeafletAssetIcon(L) {
+function createLeafletAssetIcon(L, color = "#2f6fb1") {
   return L.divIcon({
     className: "asset-map-leaflet-marker-wrap",
     html: `
-      <span class="asset-map-leaflet-marker" aria-hidden="true">
+      <span class="asset-map-leaflet-marker" aria-hidden="true" style="--asset-map-marker-color: ${escapeHtml(color)}">
         <span class="asset-map-leaflet-marker-core"></span>
       </span>
     `,
@@ -2057,6 +2069,21 @@ function createGoogleMapLabelOverlay(maps, map, asset) {
   const overlay = new AssetMapLabelOverlay();
   overlay.setMap(map);
   return overlay;
+}
+
+function createGoogleMapPinIcon(maps, asset) {
+  const color = getAssetStatusColor(asset?.status);
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">
+      <path d="M15 41s12-14.6 12-24.2C27 8.4 21.6 3 15 3S3 8.4 3 16.8C3 26.4 15 41 15 41Z" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
+      <circle cx="15" cy="16.8" r="4.8" fill="#ffffff"/>
+    </svg>
+  `;
+  return {
+    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    scaledSize: new maps.Size(30, 42),
+    anchor: new maps.Point(15, 41),
+  };
 }
 
 function resetAssetMap() {
@@ -2196,14 +2223,7 @@ async function initializeAssetMap(rows) {
       map: googleMapsRuntime.map,
       position: { lat: getAssetLatitude(asset), lng: getAssetLongitude(asset) },
       title: String(asset.name || "Asset"),
-      icon: {
-        path: maps.SymbolPath.CIRCLE,
-        scale: 7,
-        fillColor: "#111111",
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 2,
-      },
+      icon: createGoogleMapPinIcon(maps, asset),
       optimized: false,
     });
     marker.assetId = asset.id;
@@ -2292,8 +2312,8 @@ async function initializeLeafletAssetMap(rows) {
   }).addTo(leafletRuntime.map);
 
   const bounds = [];
-  const markerIcon = createLeafletAssetIcon(L);
   mappableAssets.forEach((asset) => {
+    const markerIcon = createLeafletAssetIcon(L, getAssetStatusColor(asset?.status));
     const marker = L.marker([getAssetLatitude(asset), getAssetLongitude(asset)], {
       title: String(asset.name || "Asset"),
       icon: markerIcon,
