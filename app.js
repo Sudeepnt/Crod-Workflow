@@ -1268,6 +1268,7 @@ const state = {
   assetsView: "table",
   assetMapKeyEditorOpen: false,
   assetMapExpanded: false,
+  assetStreetViewAssetId: null,
   assetMapRenderToken: 0,
   modalMode: "create",
   modalEntity: "table",
@@ -1994,8 +1995,11 @@ function getAssetMarkerLabelMarkup(asset) {
   const status = escapeHtml(getAssetMarkerStatusText(asset));
   return `
     <span class="asset-map-label-copy">
-      <span class="asset-map-label-name">${name}</span>
-      ${status ? `<span class="asset-map-label-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
+      <span class="asset-map-label-main">
+        <span class="asset-map-label-name">${name}</span>
+        ${status ? `<span class="asset-map-label-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
+      </span>
+      <button class="asset-map-label-street-view" type="button" data-asset-map-street-view-id="${escapeHtml(asset.id)}">Street View</button>
     </span>
   `;
 }
@@ -2052,11 +2056,25 @@ function getAssetMapCenterPosition() {
   return null;
 }
 
-function openAssetStreetView() {
-  const position = getAssetMapCenterPosition();
-  if (!position) return;
-  const streetViewUrl = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${encodeURIComponent(`${position.lat},${position.lng}`)}`;
-  window.open(streetViewUrl, "_blank", "noopener,noreferrer");
+function getAssetStreetViewEmbedUrl(asset) {
+  const lat = getAssetLatitude(asset);
+  const lng = getAssetLongitude(asset);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "";
+  return `https://www.google.com/maps?q=&layer=c&cbll=${encodeURIComponent(`${lat},${lng}`)}&cbp=11,0,0,0,0&output=svembed`;
+}
+
+function openAssetStreetView(assetId) {
+  if (!assetId) return;
+  const asset = data.assets.find((item) => item.id === assetId) ?? null;
+  if (!asset || !hasValidAssetCoordinates(asset)) return;
+  state.assetStreetViewAssetId = assetId;
+  renderHeroPanel();
+}
+
+function closeAssetStreetView() {
+  if (!state.assetStreetViewAssetId) return;
+  state.assetStreetViewAssetId = null;
+  renderHeroPanel();
 }
 
 function createLeafletAssetIcon(L, color = "#2f6fb1") {
@@ -2375,6 +2393,7 @@ async function initializeLeafletAssetMap(rows) {
     `);
     marker.bindTooltip(getAssetMarkerLabelMarkup(asset), {
       permanent: true,
+      interactive: true,
       direction: "top",
       offset: [0, -14],
       className: "asset-map-leaflet-tooltip",
@@ -4852,10 +4871,6 @@ function bindAssetMapActions(rows) {
     });
   });
 
-  document.querySelector("[data-asset-map-street-view]")?.addEventListener("click", () => {
-    openAssetStreetView();
-  });
-
   if (state.activeNav !== "assets" || state.assetsView !== "map") return;
 
   document.querySelectorAll("[data-asset-map-open]").forEach((button) => {
@@ -4985,12 +5000,12 @@ function renderAssetMapPanel(rows) {
   const mappableAssets = getMappableAssets(rows);
   const unmappedAssets = getUnmappedAssets(rows);
   const apiKey = state.googleMapsApiKey || getGoogleMapsApiKey();
+  const activeStreetViewAsset = state.assetStreetViewAssetId
+    ? rows.find((asset) => asset.id === state.assetStreetViewAssetId) ?? data.assets.find((asset) => asset.id === state.assetStreetViewAssetId) ?? null
+    : null;
   const stageToolbar = `
     <div class="asset-map-stage-toolbar">
       <div class="asset-map-type-badge" aria-label="Satellite view">Satellite</div>
-      <button class="record-action-button asset-map-street-view-button" type="button" data-asset-map-street-view aria-label="Street View" title="Street View">
-        Street View
-      </button>
       <button class="record-action-button asset-map-expand-button" type="button" data-asset-map-expand aria-label="${state.assetMapExpanded ? "Restore map size" : "Expand map"}" title="${state.assetMapExpanded ? "Restore map size" : "Expand map"}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           ${state.assetMapExpanded
@@ -5024,6 +5039,27 @@ function renderAssetMapPanel(rows) {
         <div class="asset-map-stage-inner">
           ${stageToolbar}
           <div id="asset-map-canvas" class="asset-map-canvas" aria-label="Asset locations map"></div>
+          ${activeStreetViewAsset ? `
+            <div class="asset-street-view-panel">
+              <div class="asset-street-view-head">
+                <div class="asset-street-view-copy">
+                  <strong>${escapeHtml(activeStreetViewAsset.name || "Asset")}</strong>
+                  <span>Street View</span>
+                </div>
+                <button class="record-action-button asset-street-view-close" type="button" data-asset-street-view-close aria-label="Close Street View" title="Close Street View">Close</button>
+              </div>
+              <div class="asset-street-view-frame-wrap">
+                <iframe
+                  class="asset-street-view-frame"
+                  src="${escapeHtml(getAssetStreetViewEmbedUrl(activeStreetViewAsset))}"
+                  title="Street View for ${escapeHtml(activeStreetViewAsset.name || "asset")}"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            </div>
+          ` : ""}
           <div id="asset-map-loading" class="asset-map-loading" aria-live="polite">
             <div class="asset-map-loading-card">
               <span>Loading map...</span>
@@ -5167,6 +5203,7 @@ function snapshotCurrentView() {
     activeTable: state.activeTable,
     assetsView: state.assetsView,
     assetMapExpanded: state.assetMapExpanded,
+    assetStreetViewAssetId: state.assetStreetViewAssetId,
     detailTableKey: state.detailTableKey,
     detailRecordId: state.detailRecordId,
     detailTreeOpen: state.detailTreeOpen,
@@ -5181,12 +5218,14 @@ function restoreView(view = null) {
     detailTableKey: null,
     detailRecordId: null,
     detailTreeOpen: false,
+    assetStreetViewAssetId: null,
   };
 
   state.activeNav = targetView.activeNav;
   state.activeTable = targetView.activeTable;
   state.assetsView = targetView.assetsView ?? "table";
   state.assetMapExpanded = Boolean(targetView.assetMapExpanded);
+  state.assetStreetViewAssetId = targetView.assetStreetViewAssetId ?? null;
   state.detailTableKey = targetView.detailTableKey;
   state.detailRecordId = targetView.detailRecordId;
   state.detailTreeOpen = targetView.detailTreeOpen;
@@ -5221,6 +5260,7 @@ function openRecordDetail(tableKey, recordId, options = {}) {
   state.detailTableKey = tableKey;
   state.detailRecordId = recordId;
   state.detailTreeOpen = false;
+  state.assetStreetViewAssetId = null;
   renderSidebarNav();
   renderMeta();
   renderHeroPanel();
@@ -6376,6 +6416,23 @@ function bindEvents() {
   });
 
   el.heroPanel.addEventListener("click", (event) => {
+    if (event.target instanceof Element) {
+      const streetViewButton = event.target.closest("[data-asset-map-street-view-id]");
+      if (streetViewButton instanceof HTMLElement) {
+        event.stopPropagation();
+        const assetId = streetViewButton.getAttribute("data-asset-map-street-view-id");
+        if (assetId) openAssetStreetView(assetId);
+        return;
+      }
+
+      const streetViewClose = event.target.closest("[data-asset-street-view-close]");
+      if (streetViewClose instanceof HTMLElement) {
+        event.stopPropagation();
+        closeAssetStreetView();
+        return;
+      }
+    }
+
     const target = event.target instanceof Element ? event.target.closest("[data-gantt-shift],[data-gantt-today],[data-gantt-month-shift],[data-gantt-nav-shift],[data-gantt-open]") : null;
     if (!(target instanceof HTMLElement) || state.activeNav !== "gantt") return;
 
