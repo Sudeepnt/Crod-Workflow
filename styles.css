@@ -2038,6 +2038,37 @@ input[type="search"] {
   color: #111111;
 }
 
+.asset-map-popup {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-width: 220px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.asset-map-popup-main {
+  display: grid;
+  gap: 4px;
+}
+
+.asset-map-popup-name {
+  font-size: 13px;
+  line-height: 1.25;
+  color: #111111;
+}
+
+.asset-map-popup-status {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.asset-map-popup-address {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #5f6b76;
+  word-break: break-word;
+}
+
 .asset-street-view-panel {
   position: absolute;
   inset: 18px;
@@ -2139,9 +2170,10 @@ input[type="search"] {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 11px;
   font-weight: 600;
-  padding: 4px 8px;
+  padding: 8px 10px;
   color: #111111;
-  border-radius: 999px;
+  border-radius: 14px;
+  white-space: normal;
 }
 
 .leaflet-tooltip.asset-map-leaflet-tooltip::before {

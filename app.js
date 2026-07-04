@@ -1315,6 +1315,7 @@ const state = {
   assetsView: "table",
   assetMapKeyEditorOpen: false,
   assetMapExpanded: false,
+  assetMapViewport: null,
   assetStreetViewAssetId: null,
   assetMapRenderToken: 0,
   modalMode: "create",
@@ -2155,6 +2156,22 @@ function getAssetMarkerLabelMarkup(asset) {
   `;
 }
 
+function getAssetMapPopupMarkup(asset, { includeStreetView = true } = {}) {
+  const name = escapeHtml(getAssetMarkerLabelText(asset));
+  const status = escapeHtml(getAssetMarkerStatusText(asset));
+  const address = escapeHtml(getAssetMapAddress(asset));
+  return `
+    <div class="asset-map-popup">
+      <div class="asset-map-popup-main">
+        <strong class="asset-map-popup-name">${name}</strong>
+        ${status ? `<span class="asset-map-popup-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
+        <span class="asset-map-popup-address">${address}</span>
+      </div>
+      ${includeStreetView ? `<button class="asset-map-label-street-view" type="button" data-asset-map-street-view-id="${escapeHtml(asset.id)}">Street View</button>` : ""}
+    </div>
+  `;
+}
+
 function setAssetMapLoading(isLoading, message = "Loading map...") {
   const shell = document.querySelector(".asset-map-stage-inner");
   const status = document.getElementById("asset-map-loading");
@@ -2207,6 +2224,54 @@ function getAssetMapCenterPosition() {
   return null;
 }
 
+function getAssetMapZoomLevel() {
+  if (googleMapsRuntime.map?.getZoom) {
+    const zoom = Number(googleMapsRuntime.map.getZoom());
+    if (Number.isFinite(zoom)) return zoom;
+  }
+
+  if (leafletRuntime.map?.getZoom) {
+    const zoom = Number(leafletRuntime.map.getZoom());
+    if (Number.isFinite(zoom)) return zoom;
+  }
+
+  return null;
+}
+
+function captureAssetMapViewport() {
+  if (state.activeNav !== "assets" || state.assetsView !== "map" || state.detailRecordId) return;
+  const center = getAssetMapCenterPosition();
+  const zoom = getAssetMapZoomLevel();
+  if (!center || !Number.isFinite(zoom)) return;
+  state.assetMapViewport = { center, zoom };
+}
+
+function setAssetMapViewport(center, zoom) {
+  if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng) || !Number.isFinite(zoom)) return;
+  state.assetMapViewport = { center, zoom };
+}
+
+function bindGoogleMapViewportTracking(maps) {
+  if (!googleMapsRuntime.map) return;
+  googleMapsRuntime.map.addListener("idle", () => {
+    const center = getAssetMapCenterPosition();
+    const zoom = getAssetMapZoomLevel();
+    if (!center || !Number.isFinite(zoom)) return;
+    setAssetMapViewport(center, zoom);
+  });
+}
+
+function bindLeafletMapViewportTracking() {
+  if (!leafletRuntime.map) return;
+  const syncViewport = () => {
+    const center = getAssetMapCenterPosition();
+    const zoom = getAssetMapZoomLevel();
+    if (!center || !Number.isFinite(zoom)) return;
+    setAssetMapViewport(center, zoom);
+  };
+  leafletRuntime.map.on("moveend zoomend", syncViewport);
+}
+
 function getAssetStreetViewEmbedUrl(asset) {
   const lat = getAssetLatitude(asset);
   const lng = getAssetLongitude(asset);
@@ -2218,12 +2283,14 @@ function openAssetStreetView(assetId) {
   if (!assetId) return;
   const asset = data.assets.find((item) => item.id === assetId) ?? null;
   if (!asset || !hasValidAssetCoordinates(asset)) return;
+  captureAssetMapViewport();
   state.assetStreetViewAssetId = assetId;
   renderHeroPanel();
 }
 
 function closeAssetStreetView() {
   if (!state.assetStreetViewAssetId) return;
+  captureAssetMapViewport();
   state.assetStreetViewAssetId = null;
   renderHeroPanel();
 }
@@ -2301,10 +2368,6 @@ function resetAssetMap() {
     if (marker?.setMap) marker.setMap(null);
   });
   googleMapsRuntime.markers = [];
-  googleMapsRuntime.labels.forEach((label) => {
-    if (label?.setMap) label.setMap(null);
-  });
-  googleMapsRuntime.labels = [];
   googleMapsRuntime.map = null;
   googleMapsRuntime.infoWindow = null;
   leafletRuntime.markers.forEach((marker) => {
@@ -2430,6 +2493,13 @@ async function initializeAssetMap(rows) {
     mapTypeId: "satellite",
   });
   googleMapsRuntime.infoWindow = new maps.InfoWindow();
+  const openMarkerInfo = (marker, asset) => {
+    googleMapsRuntime.infoWindow?.setContent(getAssetMapPopupMarkup(asset));
+    googleMapsRuntime.infoWindow?.open({
+      anchor: marker,
+      map: googleMapsRuntime.map,
+    });
+  };
 
   mappableAssets.forEach((asset) => {
     const marker = new maps.Marker({
@@ -2440,25 +2510,16 @@ async function initializeAssetMap(rows) {
       optimized: false,
     });
     marker.assetId = asset.id;
-    marker.addListener("click", () => {
-      googleMapsRuntime.infoWindow?.setContent(`
-        <div class="asset-map-info-window">
-          <strong>${escapeHtml(asset.name || "Asset")}</strong>
-          <div>${escapeHtml(asset.type || "Unknown type")}</div>
-          <div>${escapeHtml(getAssetMapAddress(asset))}</div>
-        </div>
-      `);
-      googleMapsRuntime.infoWindow?.open({
-        anchor: marker,
-        map: googleMapsRuntime.map,
-      });
-    });
+    marker.addListener("click", () => openMarkerInfo(marker, asset));
+    marker.addListener("mouseover", () => openMarkerInfo(marker, asset));
     googleMapsRuntime.markers.push(marker);
-    googleMapsRuntime.labels.push(createGoogleMapLabelOverlay(maps, googleMapsRuntime.map, asset));
     bounds.extend(marker.getPosition());
   });
 
-  if (mappableAssets.length === 1) {
+  if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
+    googleMapsRuntime.map.setCenter(state.assetMapViewport.center);
+    googleMapsRuntime.map.setZoom(state.assetMapViewport.zoom);
+  } else if (mappableAssets.length === 1) {
     googleMapsRuntime.map.setCenter(bounds.getCenter());
     googleMapsRuntime.map.setZoom(17);
   } else {
@@ -2468,13 +2529,17 @@ async function initializeAssetMap(rows) {
   globalThis.setTimeout(() => {
     if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     globalThis.google?.maps?.event?.trigger(googleMapsRuntime.map, "resize");
-    if (mappableAssets.length === 1) {
+    if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
+      googleMapsRuntime.map.setCenter(state.assetMapViewport.center);
+      googleMapsRuntime.map.setZoom(state.assetMapViewport.zoom);
+    } else if (mappableAssets.length === 1) {
       googleMapsRuntime.map.setCenter(bounds.getCenter());
       googleMapsRuntime.map.setZoom(17);
     } else {
       googleMapsRuntime.map.fitBounds(bounds, 56);
     }
   }, 250);
+  bindGoogleMapViewportTracking(maps);
 
   globalThis.setTimeout(() => {
     if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
@@ -2536,14 +2601,10 @@ async function initializeLeafletAssetMap(rows) {
       icon: markerIcon,
     }).addTo(leafletRuntime.map);
     marker.bindPopup(`
-      <div class="asset-map-info-window">
-        <strong>${escapeHtml(asset.name || "Asset")}</strong>
-        <div>${escapeHtml(asset.type || "Unknown type")}</div>
-        <div>${escapeHtml(getAssetMapAddress(asset))}</div>
-      </div>
+      ${getAssetMapPopupMarkup(asset)}
     `);
-    marker.bindTooltip(getAssetMarkerLabelMarkup(asset), {
-      permanent: true,
+    marker.bindTooltip(getAssetMapPopupMarkup(asset, { includeStreetView: false }), {
+      permanent: false,
       interactive: true,
       direction: "top",
       offset: [0, -14],
@@ -2554,7 +2615,9 @@ async function initializeLeafletAssetMap(rows) {
     bounds.push([getAssetLatitude(asset), getAssetLongitude(asset)]);
   });
 
-  if (bounds.length === 1) {
+  if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
+    leafletRuntime.map.setView([state.assetMapViewport.center.lat, state.assetMapViewport.center.lng], state.assetMapViewport.zoom);
+  } else if (bounds.length === 1) {
     leafletRuntime.map.setView(bounds[0], 17);
   } else {
     leafletRuntime.map.fitBounds(bounds, { padding: [56, 56] });
@@ -2563,13 +2626,16 @@ async function initializeLeafletAssetMap(rows) {
   globalThis.setTimeout(() => {
     if (!leafletRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
     leafletRuntime.map.invalidateSize();
-    if (bounds.length === 1) {
+    if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
+      leafletRuntime.map.setView([state.assetMapViewport.center.lat, state.assetMapViewport.center.lng], state.assetMapViewport.zoom);
+    } else if (bounds.length === 1) {
       leafletRuntime.map.setView(bounds[0], 17);
     } else {
       leafletRuntime.map.fitBounds(bounds, { padding: [56, 56] });
     }
     setAssetMapLoading(false);
   }, 250);
+  bindLeafletMapViewportTracking();
 }
 
 function getRelationConfig(fieldName) {
@@ -5674,6 +5740,7 @@ function snapshotCurrentView() {
     activeTable: state.activeTable,
     assetsView: state.assetsView,
     assetMapExpanded: state.assetMapExpanded,
+    assetMapViewport: state.assetMapViewport ? { ...state.assetMapViewport, center: { ...state.assetMapViewport.center } } : null,
     assetStreetViewAssetId: state.assetStreetViewAssetId,
     detailTableKey: state.detailTableKey,
     detailRecordId: state.detailRecordId,
@@ -5689,6 +5756,7 @@ function restoreView(view = null) {
     detailTableKey: null,
     detailRecordId: null,
     detailTreeOpen: false,
+    assetMapViewport: null,
     assetStreetViewAssetId: null,
   };
 
@@ -5696,6 +5764,7 @@ function restoreView(view = null) {
   state.activeTable = targetView.activeTable;
   state.assetsView = targetView.assetsView ?? "table";
   state.assetMapExpanded = Boolean(targetView.assetMapExpanded);
+  state.assetMapViewport = targetView.assetMapViewport ? { ...targetView.assetMapViewport, center: { ...targetView.assetMapViewport.center } } : null;
   state.assetStreetViewAssetId = targetView.assetStreetViewAssetId ?? null;
   state.detailTableKey = targetView.detailTableKey;
   state.detailRecordId = targetView.detailRecordId;
@@ -5758,6 +5827,9 @@ function getActiveDetailRecord() {
 
 function renderHeroPanel() {
   captureDetailTreeScroll();
+  if (state.activeNav === "assets" && state.assetsView === "map" && !state.detailRecordId) {
+    captureAssetMapViewport();
+  }
   const detail = getActiveDetailRecord();
   el.heroPanel.classList.toggle("hero-panel-gantt", state.activeNav === "gantt" && !detail);
   if (state.activeNav !== "assets" || state.assetsView !== "map" || detail) {
