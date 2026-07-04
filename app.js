@@ -114,8 +114,8 @@ const tables = [
       { name: "task", label: "Task", type: "select" },
       { name: "type", label: "Type", type: "select", options: ["Building", "Land", "Unit", "Theatre", "Warehouse", "Mixed"] },
       { name: "address", label: "Address", type: "textarea" },
-      { name: "lat", label: "lat", type: "number", step: "any" },
-      { name: "lng", label: "lng", type: "number", step: "any" },
+      { name: "lat", label: "Latitude", type: "number", step: "any", placeholder: "-90 to 90" },
+      { name: "lng", label: "Longitude", type: "number", step: "any", placeholder: "-180 to 180" },
       { name: "area", label: "Area", type: "text" },
       { name: "unit", label: "Unit", type: "text" },
       { name: "owner_ventures", label: "Owner ventures", type: "text" },
@@ -2097,6 +2097,21 @@ function getMappableAssets(rows) {
 
 function getUnmappedAssets(rows) {
   return rows.filter((row) => !hasValidAssetCoordinates(row));
+}
+
+function getAssetCoordinateIssue(asset) {
+  const hasLat = asset?.lat !== "" && asset?.lat != null;
+  const hasLng = asset?.lng !== "" && asset?.lng != null;
+  const lat = Number(asset?.lat ?? asset?.latitude);
+  const lng = Number(asset?.lng ?? asset?.longitude);
+
+  if (hasLat !== hasLng) return "missing one coordinate";
+  if (!hasLat && !hasLng) return "missing coordinates";
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "invalid number";
+  if (lat < -90 || lat > 90) return "latitude out of range";
+  if (lng < -180 || lng > 180) return "longitude out of range";
+  if (lat === 0 && lng === 0) return "0,0 ignored";
+  return "unmapped";
 }
 
 function getAssetLatitude(asset) {
@@ -4540,10 +4555,36 @@ function getDashboardAttentionItems() {
 function renderDashboardAttention() {
   const items = getDashboardAttentionItems();
   const todayLabel = formatDashboardDate(getTodayKey());
+  const calendarIcon = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="16" rx="4"></rect>
+      <path d="M16 3v4"></path>
+      <path d="M8 3v4"></path>
+      <path d="M3 10h18"></path>
+    </svg>
+  `;
+  const listIcon = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M9 6h10"></path>
+      <path d="M9 12h10"></path>
+      <path d="M9 18h10"></path>
+      <circle cx="5" cy="6" r="1"></circle>
+      <circle cx="5" cy="12" r="1"></circle>
+      <circle cx="5" cy="18" r="1"></circle>
+    </svg>
+  `;
+  const attentionPalettes = [
+    { accent: "#8b5cf6", soft: "rgba(139, 92, 246, 0.12)" },
+    { accent: "#22c55e", soft: "rgba(34, 197, 94, 0.12)" },
+    { accent: "#3b82f6", soft: "rgba(59, 130, 246, 0.12)" },
+    { accent: "#f59e0b", soft: "rgba(245, 158, 11, 0.12)" },
+    { accent: "#ec4899", soft: "rgba(236, 72, 153, 0.12)" },
+    { accent: "#14b8a6", soft: "rgba(20, 184, 166, 0.12)" },
+  ];
   const sections = [
-    { key: "events", title: "Events" },
-    { key: "tasks", title: "Tasks" },
-    { key: "projects", title: "Projects" },
+    { key: "events", title: "Upcoming Events" },
+    { key: "tasks", title: "Upcoming Tasks" },
+    { key: "projects", title: "Upcoming Projects" },
   ];
   return `
     <section class="panel dashboard-attention-panel">
@@ -4552,8 +4593,14 @@ function renderDashboardAttention() {
           <h2>Upcoming</h2>
         </div>
         <div class="attention-panel-meta">
-          <div class="attention-today">${escapeHtml(todayLabel)}</div>
-          <div class="attention-count">${items.length} items</div>
+          <div class="attention-chip attention-today">
+            <span class="attention-chip-icon">${calendarIcon}</span>
+            <span>${escapeHtml(todayLabel)}</span>
+          </div>
+          <div class="attention-chip attention-count">
+            <span class="attention-chip-icon">${listIcon}</span>
+            <span>${items.length} items</span>
+          </div>
         </div>
       </div>
       <div id="attention-list" class="attention-sections">
@@ -4566,22 +4613,30 @@ function renderDashboardAttention() {
                 <span>${sectionItems.length}</span>
               </div>
               <div class="attention-list">
-                ${sectionItems.length ? sectionItems.map((item) => `
-                  <button class="attention-card ${item.tone}" type="button" data-attention-table="${escapeHtml(item.tableKey)}" data-attention-record="${escapeHtml(item.recordId)}">
-                    <div class="attention-card-head">
-                      <div class="attention-kind">${escapeHtml(item.kind)}</div>
-                      <div class="attention-date-block">
-                        <div class="attention-date">${escapeHtml(item.dateLabel)}</div>
-                        <div class="attention-date-hint">${escapeHtml(item.timingLabel)}</div>
+                ${sectionItems.length ? sectionItems.map((item, index) => {
+                  const palette = attentionPalettes[index % attentionPalettes.length];
+                  return `
+                  <button class="attention-card ${item.tone}" type="button" style="--attention-accent:${palette.accent}; --attention-accent-soft:${palette.soft};" data-attention-table="${escapeHtml(item.tableKey)}" data-attention-record="${escapeHtml(item.recordId)}">
+                    <span class="attention-card-rail" aria-hidden="true"></span>
+                    <span class="attention-card-icon" aria-hidden="true">${getTableIcon(item.tableKey)}</span>
+                    <div class="attention-card-main">
+                      <div class="attention-card-head">
+                        <div class="attention-card-head-copy">
+                          <div class="attention-kind">${escapeHtml(item.kind)}</div>
+                          <div class="attention-card-title">${escapeHtml(item.title)}</div>
+                        </div>
+                        <div class="attention-date-block">
+                          <div class="attention-date">${escapeHtml(item.dateLabel)}</div>
+                          <div class="attention-date-hint">${escapeHtml(item.timingLabel)}</div>
+                        </div>
                       </div>
-                    </div>
-                    <div class="attention-card-title">${escapeHtml(item.title)}</div>
-                    <div class="attention-card-status-row">
-                      ${item.tableKey === "tasks"
-                        ? renderTaskStatusBadge(item.status, "attention")
-                        : item.tableKey === "events"
-                          ? renderEventTypeBadge(item.status, "attention")
-                        : `<span class="attention-status${getStatusClassName(item.status) ? ` attention-status-${getStatusClassName(item.status)}` : ""}">${escapeHtml(item.status)}</span>`}
+                      <div class="attention-card-status-row">
+                        ${item.tableKey === "tasks"
+                          ? renderTaskStatusBadge(item.status, "attention")
+                          : item.tableKey === "events"
+                            ? renderEventTypeBadge(item.status, "attention")
+                          : `<span class="attention-status${getStatusClassName(item.status) ? ` attention-status-${getStatusClassName(item.status)}` : ""}">${escapeHtml(item.status)}</span>`}
+                      </div>
                     </div>
                     <div class="attention-card-meta">
                       ${item.details.map((detail) => `
@@ -4592,7 +4647,8 @@ function renderDashboardAttention() {
                       `).join("")}
                     </div>
                   </button>
-                `).join("") : `<div class="attention-empty">No upcoming ${escapeHtml(section.title.toLowerCase())}.</div>`}
+                `;
+                }).join("") : `<div class="attention-empty">No upcoming ${escapeHtml(section.title.toLowerCase())}.</div>`}
               </div>
             </section>
           `;
@@ -4818,16 +4874,16 @@ function renderGanttChart() {
             </label>
           </div>
           <div class="gantt-stat-strip">
-            <div><strong>${taskRows.length}</strong><span>TASKS</span></div>
-            <div><strong>${eventRows.length}</strong><span>EVENTS</span></div>
+            <div><strong>${taskRows.length}</strong><span>Tasks</span></div>
+            <div><strong>${eventRows.length}</strong><span>Events</span></div>
           </div>
           </header>
         <div class="gantt-board" style="${columnLineStyle(gridRows.length)}">
           <aside class="gantt-workstreams">
-            <div class="gantt-workstream-label">WORKSTREAMS</div>
-            ${sidebarSection("PROJECTS", projectRows.length, projectRows, "")}
-            ${sidebarSection("TASKS", taskRows.length, taskRows.slice(0, 5), taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "")}
-            ${sidebarSection("EVENTS", eventRows.length, eventRows.slice(0, 6), eventRows.length > 6 ? `View all ${eventRows.length} events` : "")}
+            <div class="gantt-workstream-label">Workstreams</div>
+            ${sidebarSection("Projects", projectRows.length, projectRows, "")}
+            ${sidebarSection("Tasks", taskRows.length, taskRows.slice(0, 5), taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "")}
+            ${sidebarSection("Events", eventRows.length, eventRows.slice(0, 6), eventRows.length > 6 ? `View all ${eventRows.length} events` : "")}
           </aside>
           <main class="gantt-timeline">
             <div class="gantt-timeline-days">
@@ -5194,9 +5250,13 @@ function renderPeopleRecords(rows) {
                 ${renderSerialNumber(index + 1)}
                 <span class="person-card-avatar" aria-hidden="true">${escapeHtml(getInitials(row.name || "Unnamed"))}</span>
               </div>
-              <strong class="person-card-name">${escapeHtml(row.name || "Unnamed")}</strong>
-              <span class="person-card-type">${escapeHtml(formatCell("people", "type", row))}</span>
-              ${renderPersonStatus(row.status || "No status")}
+              <div class="person-card-copy">
+                <strong class="person-card-name">${escapeHtml(row.name || "Unnamed")}</strong>
+                <div class="person-card-meta-row">
+                  <span class="person-card-type">${escapeHtml(formatCell("people", "type", row))}</span>
+                  ${renderPersonStatus(row.status || "No status")}
+                </div>
+              </div>
             </div>
             <div class="person-card-actions">
               ${renderRecordActionIconButton("edit", `Edit ${row.name || row.title || row.reference || "record"}`, `data-record-action="edit" data-record-id="${escapeHtml(row.id)}"`)}
@@ -5536,6 +5596,10 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
 function renderAssetMapPanel(rows) {
   const mappableAssets = getMappableAssets(rows);
   const unmappedAssets = getUnmappedAssets(rows);
+  const unmappedPreview = unmappedAssets
+    .slice(0, 4)
+    .map((asset) => `${asset.name || asset.id || "Asset"} (${getAssetCoordinateIssue(asset)})`)
+    .join(", ");
   const apiKey = state.googleMapsApiKey || getGoogleMapsApiKey();
   const activeStreetViewAsset = state.assetStreetViewAssetId
     ? rows.find((asset) => asset.id === state.assetStreetViewAssetId) ?? data.assets.find((asset) => asset.id === state.assetStreetViewAssetId) ?? null
@@ -5570,6 +5634,7 @@ function renderAssetMapPanel(rows) {
         <div class="asset-map-empty">
           <strong>No mapped assets yet</strong>
           <p>Add valid latitude and longitude values to asset records. Assets with coordinates set to 0, 0 are ignored.</p>
+          ${unmappedPreview ? `<p>Current issues: ${escapeHtml(unmappedPreview)}${unmappedAssets.length > 4 ? ` and ${unmappedAssets.length - 4} more` : ""}.</p>` : ""}
         </div>
       `
       : `
@@ -5874,7 +5939,7 @@ function renderHeroPanel() {
       <div class="page-view page-view-dashboard">
         <div class="hero-minimal">
           <div class="hero-head">
-            <div class="hero-kicker">create</div>
+            <div class="hero-kicker">Create</div>
           </div>
           <div id="board" class="board" aria-label="Create tables"></div>
           ${renderDashboardAttention()}
@@ -6885,11 +6950,49 @@ function buildRecordFromForm(table) {
   return normalizeHierarchicalRecord(table.key, record, state.editingRecordId ?? "");
 }
 
+function validateRecordBeforeSave(table, record) {
+  if (table.key !== "assets") {
+    return { valid: true, message: "" };
+  }
+
+  const rawLat = record?.lat;
+  const rawLng = record?.lng;
+  const hasLat = rawLat !== "" && rawLat != null;
+  const hasLng = rawLng !== "" && rawLng != null;
+
+  if (hasLat !== hasLng) {
+    return { valid: false, message: "Asset coordinates need both latitude and longitude." };
+  }
+
+  if (!hasLat && !hasLng) {
+    return { valid: true, message: "" };
+  }
+
+  const lat = Number(rawLat);
+  const lng = Number(rawLng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { valid: false, message: "Asset coordinates must be valid numbers." };
+  }
+  if (lat < -90 || lat > 90) {
+    return { valid: false, message: "Latitude must be between -90 and 90." };
+  }
+  if (lng < -180 || lng > 180) {
+    return { valid: false, message: "Longitude must be between -180 and 180." };
+  }
+
+  return { valid: true, message: "" };
+}
+
 async function saveRecord() {
   const table = tables.find((item) => item.key === state.activeTable);
   if (!table) return;
 
   const payload = buildRecordFromForm(table);
+  const validation = validateRecordBeforeSave(table, payload);
+  if (!validation.valid) {
+    window.alert(validation.message);
+    return;
+  }
   const previousRows = cloneRows(data[table.key] ?? []);
   let nextRecord = null;
   const isEdit = state.modalMode === "edit" && state.editingRecordId;
