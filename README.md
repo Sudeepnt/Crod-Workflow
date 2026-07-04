@@ -1,6 +1,6 @@
-# ATIT Operating System MVP
+# Gattabara Games Operating System MVP
 
-Monochrome internal workflow shell for the ATIT client.
+Monochrome internal workflow shell for the Gattabara Games client.
 
 ## What is included
 

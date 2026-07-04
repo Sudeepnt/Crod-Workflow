@@ -3,54 +3,53 @@ const tables = [
     key: "ventures",
     title: "Ventures",
     singular: "Venture",
-    summary: "Companies, SPVs, clients, partners",
-    listColumns: ["name", "type", "status", "verticals", "date"],
+    summary: "Every company-shaped entity, including GG itself.",
+    listColumns: ["name", "type", "status", "verticals"],
     fields: [
       { name: "name", label: "Name", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "type", label: "Type", type: "select", options: ["Self", "SPV", "Subsidiary", "Client", "Partner", "Vendor", "JV", "Prospect"], required: true },
+      { name: "type", label: "Type", type: "select", options: ["Self", "Client", "Publisher", "Partner Studio", "Vendor", "Contractor Studio", "Investor", "Prospect"], required: true },
       { name: "status", label: "Status", type: "select", options: ["Prospect", "Active", "Dormant", "Closed"] },
-      { name: "verticals", label: "Verticals", type: "text", placeholder: "Comma separated" },
+      { name: "verticals", label: "Verticals", type: "multi-select", options: ["Game Development", "Art Production", "Animation", "Co-Development", "Strategy & Pre-Production", "Publishing", "IP"] },
       { name: "entity_form", label: "Entity form", type: "select", options: ["PvtLtd", "LLP", "Proprietorship", "Trust", "Other"] },
       { name: "reg_no", label: "Reg no.", type: "text", placeholder: "CIN / LLPIN / GST" },
-      { name: "primary_contact", label: "Primary contact", type: "text" },
-      { name: "tags", label: "Tags", type: "text", placeholder: "Comma separated" },
+      { name: "primary_contact", label: "Primary contact", type: "text", placeholder: "Lead person here" },
+      { name: "tags", label: "Tags", type: "text", placeholder: "Free classification" },
     ],
   },
   {
     key: "people",
     title: "People",
     singular: "Person",
-    summary: "Contacts, roles, and access",
-    listColumns: ["name", "type", "venture", "access_level", "status"],
+    summary: "Every human. One person can be many types at once.",
+    listColumns: ["name", "type", "venture", "role_title", "status"],
     fields: [
       { name: "name", label: "Name", type: "text", required: true },
+      { name: "type", label: "Type", type: "multi-select", options: ["Founder", "Producer", "Employee", "Client", "Publisher", "Partner", "Investor", "Contractor", "Vendor", "Consultant", "Freelancer"], required: true },
       { name: "email", label: "Email", type: "email" },
       { name: "phone", label: "Phone", type: "tel" },
-      { name: "venture", label: "Venture", type: "text" },
-      { name: "type", label: "Type", type: "select", options: ["Founder", "Investor", "Partner", "Client", "Vendor", "Consultant", "Contractor", "Employee"], required: true },
-      { name: "role_title", label: "Role title", type: "select", options: ["Managing Director", "Project Manager", "Site Engineer", "Architect", "Client SPOC", "Finance Head", "Vendor Coordinator", "Legal Consultant"] },
-      { name: "status", label: "Status", type: "select", options: ["Active", "Inactive"], value: "Active" },
+      { name: "venture", label: "Venture", type: "text", placeholder: "Company they belong to" },
+      { name: "role_title", label: "Role title", type: "text", placeholder: "Game Designer, Animator, Producer, Art Director, Unity Developer" },
       { name: "access_level", label: "Access level", type: "select", options: ["Founder", "Partner", "Employee", "Client", "Contractor"] },
+      { name: "status", label: "Status", type: "select", options: ["Active", "Inactive"], value: "Active" },
     ],
   },
   {
     key: "projects",
     title: "Projects",
     singular: "Project",
-    summary: "Execution layers across ventures",
+    summary: "Every piece of work. Internal projects (Marketing, BizDev) link to GG.",
     listColumns: ["name", "venture", "status", "lead", "target_date"],
     fields: [
       { name: "name", label: "Name", type: "text", required: true },
-      { name: "venture", label: "Venture", type: "text" },
-      { name: "vertical", label: "Vertical", type: "text" },
-      { name: "type", label: "Type", type: "select", options: ["Development", "Marketing", "Acquisition", "Leasing", "Infra", "CapitalRaise", "Logistics", "Internal"] },
-      { name: "asset", label: "Asset", type: "text" },
-      { name: "stage", label: "Stage", type: "select", options: ["Origination", "Scoping", "Mandate", "Execution", "Delivery", "Closure"] },
+      { name: "venture", label: "Venture", type: "text", placeholder: "Owning/relevant client, publisher, partner studio, or internal GG venture" },
+      { name: "vertical", label: "Vertical", type: "select", options: ["Game Development", "Art Production", "Animation", "Co-Development", "Strategy & Pre-Production", "Publishing & IP"] },
+      { name: "type", label: "Type", type: "select", options: ["Game Development", "Animation", "Art Production", "Co-Development", "Prototype", "LiveOps", "Internal IP", "Client Production", "Strategy"] },
+      { name: "asset", label: "Asset", type: "text", placeholder: "Linked creative/IP asset, if any" },
+      { name: "stage", label: "Stage", type: "select", options: ["Discovery", "Brief", "Pre-Production", "Production", "Review", "Delivery", "Support", "Close"] },
       { name: "status", label: "Status", type: "select", options: ["Active", "On-Hold", "Blocked", "Completed", "Cancelled"] },
       { name: "start_date", label: "Start date", type: "date" },
       { name: "target_date", label: "Target date", type: "date" },
-      { name: "lead", label: "Lead", type: "text" },
+      { name: "lead", label: "Lead", type: "text", placeholder: "Project owner" },
       { name: "client_shareable", label: "Client shareable", type: "checkbox" },
     ],
   },
@@ -58,11 +57,10 @@ const tables = [
     key: "tasks",
     title: "Tasks",
     singular: "Task",
-    summary: "Daily work, owners, deadlines",
+    summary: "Daily execution. A subtask is a task with a parent.",
     listColumns: ["title", "status", "owner", "priority", "due_date"],
     fields: [
       { name: "title", label: "Title", type: "text", required: true },
-      { name: "venture", label: "Venture", type: "text", required: true },
       { name: "project", label: "Project", type: "text", required: true },
       { name: "parent_task", label: "Parent task", type: "text" },
       { name: "status", label: "Status", type: "select", options: ["Backlog", "To-Do", "In-Progress", "In-Review", "Blocked", "Done"] },
@@ -78,1150 +76,448 @@ const tables = [
   },
   {
     key: "documents",
-    title: "Documents/Notes",
-    singular: "Document/Note",
-    summary: "Notes, files, and agreements",
-    listColumns: ["title", "venture_project", "body", "type", "status", "date"],
+    title: "Documents",
+    singular: "Document",
+    summary: "Every note, file, agreement. Never an orphan; always linked.",
+    listColumns: ["title", "type", "status", "version"],
     fields: [
       { name: "title", label: "Title", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "venture", label: "Venture", type: "select", required: true },
-      { name: "project", label: "Project", type: "select" },
-      { name: "task", label: "Task", type: "select" },
-      { name: "related_assets", label: "Assets", type: "select" },
-      { name: "related_events", label: "Events", type: "select" },
-      { name: "related_transactions", label: "Transactions", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Note", "Report", "Agreement", "Drawing", "Photo", "Model", "Proposal", "Research", "Comms"] },
-      { name: "body", label: "Body", type: "textarea" },
-      { name: "file_ref", label: "File ref", type: "text" },
+      { name: "type", label: "Type", type: "select", options: ["Brief", "GDD", "Art Bible", "Script", "Storyboard", "Feedback", "Proposal", "Agreement", "Build Notes", "Research", "Report", "Comms", "Pitch Deck"] },
+      { name: "body", label: "Body", type: "textarea", placeholder: "Native note" },
+      { name: "file_ref", label: "File ref", type: "text", placeholder: "File pointer" },
       { name: "version", label: "Version", type: "number" },
       { name: "status", label: "Status", type: "select", options: ["Draft", "Final", "Signed", "Superseded"] },
+      { name: "links", label: "Links", type: "text" },
       { name: "permission", label: "Permission", type: "select", options: ["Internal", "Restricted", "Client-visible", "Contractor-visible"] },
-      { name: "tags", label: "Tags", type: "text", placeholder: "Comma separated" },
+      { name: "tags", label: "Tags", type: "text", placeholder: "Drives search" },
     ],
   },
   {
     key: "assets",
-    title: "Assets",
+    title: "Game's Assets",
     singular: "Asset",
-    summary: "Buildings, land, and units",
-    listColumns: ["name", "type", "status", "owner_ventures", "date"],
+    summary: "Creative, technical, and IP assets linked to the work.",
+    listColumns: ["name", "type", "status", "owner", "due_date"],
     fields: [
-      { name: "name", label: "Name", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "venture", label: "Venture", type: "select", required: true },
-      { name: "project", label: "Project", type: "select" },
-      { name: "task", label: "Task", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Building", "Land", "Unit", "Theatre", "Warehouse", "Mixed"] },
-      { name: "address", label: "Address", type: "textarea" },
-      { name: "lat", label: "lat", type: "number", step: "any" },
-      { name: "lng", label: "lng", type: "number", step: "any" },
-      { name: "area", label: "Area", type: "text" },
-      { name: "unit", label: "Unit", type: "text" },
-      { name: "owner_ventures", label: "Owner ventures", type: "text" },
-      { name: "status", label: "Status", type: "select", options: ["Under-Acquisition", "Owned", "Under-Development", "Operational", "Disposed"] },
+      { name: "name", label: "Name", type: "text", required: true, placeholder: "Main Character Rig, Forest Level, Combat Prototype Build" },
+      { name: "type", label: "Type", type: "select", options: ["Game IP", "Character", "Environment", "Prop", "Animation", "Rig", "Build", "Level", "UI Kit", "Audio", "VFX", "Source File", "Art Pack", "Tool"] },
+      { name: "project", label: "Project", type: "text" },
+      { name: "engine", label: "Engine", type: "select", options: ["Unity", "Unreal", "Roblox", "Blender", "Maya", "Godot", "Other"] },
+      { name: "format", label: "Format", type: "select", options: ["FBX", "Blend", "Maya", "PNG", "PSD", "MP4", "WAV", "UnityPackage", "UnrealAsset", "GitRepo", "Figma", "Other"] },
+      { name: "version", label: "Version", type: "text", placeholder: "v1, v2, v3, etc." },
+      { name: "status", label: "Status", type: "select", options: ["Concept", "In-Production", "In-Review", "Approved", "Delivered", "Archived"] },
+      { name: "file_ref", label: "File ref / link", type: "text", placeholder: "File, folder, repo, build, or design link" },
+      { name: "owner", label: "Owner", type: "text" },
+      { name: "reviewer", label: "Reviewer", type: "text" },
+      { name: "due_date", label: "Due date", type: "date" },
+      { name: "permission", label: "Permission", type: "select", options: ["Internal", "Client-visible", "Contractor-visible", "Restricted"] },
+      { name: "tags", label: "Tags", type: "text", placeholder: "character, prototype, enemy, UI, cinematic, trailer, build" },
     ],
   },
   {
     key: "events",
     title: "Events",
     singular: "Event",
-    summary: "Meetings, visits, and calls",
-    listColumns: ["title", "type", "start", "duration", "date"],
+    summary: "Meetings, reviews / playtests / production sessions, calls. One table. Duration = time tracking.",
+    listColumns: ["title", "type", "start", "end"],
     fields: [
       { name: "title", label: "Title", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "venture", label: "Venture", type: "select", required: true },
-      { name: "project", label: "Project", type: "select" },
-      { name: "task", label: "Task", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Meeting", "FieldVisit", "Call", "Inspection", "Other"] },
+      { name: "type", label: "Type", type: "select", options: ["Meeting", "Client Review", "Sprint Planning", "Playtest", "Creative Review", "Production Review", "Call", "Delivery Review", "Other"] },
       { name: "start", label: "Start", type: "datetime-local" },
       { name: "end", label: "End", type: "datetime-local" },
-      { name: "participants", label: "Participants", type: "text", placeholder: "Comma separated people" },
-      { name: "location", label: "Location", type: "select", options: ["Google Meet", "Zoom", "Discord", "Office", "Client Location"] },
-      { name: "summary", label: "Summary", type: "textarea" },
-      { name: "calendar_ref", label: "Calendar ref", type: "text" },
+      { name: "participants", label: "Participants", type: "text" },
+      { name: "links", label: "Links", type: "text" },
+      { name: "location", label: "Location", type: "text", placeholder: "Google Meet, Zoom, Discord, office, client location" },
+      { name: "summary", label: "Summary", type: "textarea", placeholder: "Minutes; can spawn a document" },
+      { name: "calendar_ref", label: "Calendar ref", type: "text", placeholder: "Synced calendar id" },
     ],
   },
   {
     key: "transactions",
     title: "Transactions",
     singular: "Transaction",
-    summary: "Receivables, payables, invoices",
+    summary: "Money in and out. 'Outstanding from venture X' = one query.",
     listColumns: ["reference", "direction", "status", "amount", "due_date"],
     fields: [
       { name: "reference", label: "Reference", type: "text", required: true },
-      { name: "venture", label: "Venture", type: "select", required: true },
-      { name: "project", label: "Project", type: "select" },
-      { name: "task", label: "Task", type: "select" },
       { name: "direction", label: "Direction", type: "select", options: ["Receivable", "Payable"] },
       { name: "amount", label: "Amount", type: "text", inputmode: "numeric", data_format: "transaction-amount" },
       { name: "currency", label: "Currency", type: "select", value: "INR", options: ["INR", "USD", "EUR", "GBP", "AED", "SAR", "SGD"] },
       { name: "status", label: "Status", type: "select", options: ["Draft", "Raised", "Partly-Paid", "Paid", "Overdue", "Written-Off"] },
-      { name: "counterparty", label: "Counterparty", type: "text" },
+      { name: "venture", label: "Venture", type: "select", required: true },
       { name: "project_asset", label: "Project / asset", type: "text" },
       { name: "due_date", label: "Due date", type: "date" },
-      { name: "documents", label: "Documents", type: "text", placeholder: "Linked docs" },
+      { name: "documents", label: "Documents", type: "text", placeholder: "Invoice / agreement PDF" },
     ],
   },
 ];
 
-const SUPABASE_URL = "https://enozxcriirsytgrjcxbt.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tULBf6UJrmdpNRdeb5SQmw_VOAoUhpr";
+const SUPABASE_URL = String(globalThis.GATTABARA_GAMES_SUPABASE_URL ?? "").trim();
+const SUPABASE_PUBLISHABLE_KEY = String(globalThis.GATTABARA_GAMES_SUPABASE_PUBLISHABLE_KEY ?? "").trim();
 const APP_TIMEZONE = "Asia/Kolkata";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
-const APP_SESSION_KEY = "atit.appAuthenticated";
+const APP_SESSION_KEY = "gattabara.appAuthenticated";
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
-const supabaseClient = supabaseClientFactory
+const supabaseClient = supabaseClientFactory && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY
   ? supabaseClientFactory(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
   : null;
 
 const data = {
   ventures: [
     {
-      id: "ven_1",
-      name: "v1",
+      id: "ven_gg",
+      name: "Gattabara Games",
       type: "Self",
       status: "Active",
-      verticals: ["core"],
-      date: "2026-06-28",
+      verticals: ["Game Development", "IP"],
       entity_form: "PvtLtd",
+      reg_no: "CIN-GG-2026-001",
+      primary_contact: "Aarya Singh",
+      tags: ["core", "internal"],
     },
     {
-      id: "ven_2",
-      name: "v2",
-      type: "SPV",
+      id: "ven_pf",
+      name: "PixelForge Studio",
+      type: "Partner Studio",
       status: "Active",
-      verticals: ["asset"],
-      date: "2026-06-28",
+      verticals: ["Art Production", "Co-Development"],
       entity_form: "LLP",
+      reg_no: "LLPIN-PF-7781",
+      primary_contact: "Marco Diaz",
+      tags: ["partner", "art"],
     },
     {
-      id: "ven_3",
-      name: "ATit",
-      type: "Self",
+      id: "ven_ep",
+      name: "Emberlane Publishing",
+      type: "Publisher",
       status: "Active",
-      verticals: ["core"],
-      date: "2026-06-28",
-      entity_form: "PvtLtd",
+      verticals: ["Publishing"],
+      entity_form: "Other",
+      reg_no: "GST-ELP-4455",
+      primary_contact: "Sofia Chen",
+      tags: ["publisher"],
     },
   ],
   people: [
     {
-      id: "ppl_1",
-      name: "v1_p1",
-      type: "Founder",
-      email: "v1_p1@atit.com",
+      id: "ppl_aarya",
+      name: "Aarya Singh",
+      type: ["Founder", "Producer"],
+      email: "aarya@gattabaragames.com",
       phone: "9000000001",
-      venture: "v1",
-      role_title: "Managing Director",
+      venture: "Gattabara Games",
+      role_title: "Executive Producer",
       access_level: "Founder",
       status: "Active",
     },
     {
-      id: "ppl_2",
-      name: "v1_p2",
-      type: "Partner",
-      email: "v1_p2@atit.com",
+      id: "ppl_neel",
+      name: "Neel Rao",
+      type: ["Employee"],
+      email: "neel@gattabaragames.com",
       phone: "9000000002",
-      venture: "v1",
-      role_title: "Project Manager",
-      access_level: "Partner",
+      venture: "Gattabara Games",
+      role_title: "Gameplay Programmer",
+      access_level: "Employee",
       status: "Active",
     },
     {
-      id: "ppl_3",
-      name: "v2_p1",
-      type: "Partner",
-      email: "v2_p1@atit.com",
+      id: "ppl_marco",
+      name: "Marco Diaz",
+      type: ["Partner", "Consultant"],
+      email: "marco@pixelforge.studio",
       phone: "9000000003",
-      venture: "v2",
-      role_title: "Finance Head",
+      venture: "PixelForge Studio",
+      role_title: "Art Director",
       access_level: "Partner",
       status: "Active",
     },
     {
-      id: "ppl_4",
-      name: "v1_p3",
-      type: "Employee",
-      email: "v1_p3@atit.com",
+      id: "ppl_sofia",
+      name: "Sofia Chen",
+      type: ["Client", "Publisher"],
+      email: "sofia@emberlane.pub",
       phone: "9000000004",
-      venture: "v1",
-      role_title: "Site Engineer",
-      access_level: "Employee",
-      status: "Active",
-    },
-    {
-      id: "ppl_5",
-      name: "v1_p4",
-      type: "Employee",
-      email: "v1_p4@atit.com",
-      phone: "9000000005",
-      venture: "v1",
-      role_title: "Architect",
-      access_level: "Employee",
-      status: "Active",
-    },
-    {
-      id: "ppl_6",
-      name: "v2_p2",
-      type: "Contractor",
-      email: "v2_p2@atit.com",
-      phone: "9000000006",
-      venture: "v2",
-      role_title: "Vendor Coordinator",
-      access_level: "Contractor",
-      status: "Active",
-    },
-    {
-      id: "ppl_7",
-      name: "at_p1",
-      type: "Founder",
-      email: "at_p1@atit.com",
-      phone: "9000000007",
-      venture: "ATit",
-      role_title: "Managing Director",
-      access_level: "Founder",
-      status: "Active",
-    },
-    {
-      id: "ppl_8",
-      name: "at_p2",
-      type: "Partner",
-      email: "at_p2@atit.com",
-      phone: "9000000008",
-      venture: "ATit",
-      role_title: "Project Manager",
-      access_level: "Partner",
-      status: "Active",
-    },
-    {
-      id: "ppl_9",
-      name: "at_p3",
-      type: "Employee",
-      email: "at_p3@atit.com",
-      phone: "9000000009",
-      venture: "ATit",
-      role_title: "Architect",
-      access_level: "Employee",
+      venture: "Emberlane Publishing",
+      role_title: "Publishing Manager",
+      access_level: "Client",
       status: "Active",
     },
   ],
   projects: [
     {
-      id: "prj_1",
-      name: "p1",
-      venture: "v1",
-      vertical: "core",
-      type: "Development",
-      stage: "Execution",
+      id: "prj_atlas",
+      name: "Project Atlas",
+      venture: "Gattabara Games",
+      vertical: "Game Development",
+      type: "Internal IP",
+      asset: "Atlas Hero Rig",
+      stage: "Production",
       status: "Active",
-      start_date: "2026-06-28",
-      target_date: "2026-07-12",
-      lead: "v1_p1",
+      start_date: "2026-07-01",
+      target_date: "2026-09-15",
+      lead: "Aarya Singh",
+      client_shareable: false,
+    },
+    {
+      id: "prj_skyline",
+      name: "Skyline Port",
+      venture: "Emberlane Publishing",
+      vertical: "Publishing & IP",
+      type: "Client Production",
+      asset: "Skyline Demo Build",
+      stage: "Review",
+      status: "Active",
+      start_date: "2026-07-03",
+      target_date: "2026-08-08",
+      lead: "Marco Diaz",
       client_shareable: true,
     },
     {
-      id: "prj_2",
-      name: "p2",
-      venture: "v1",
-      vertical: "ops",
-      type: "Marketing",
-      stage: "Scoping",
-      status: "Active",
-      start_date: "2026-06-28",
-      target_date: "2026-07-20",
-      lead: "v1_p2",
-      client_shareable: false,
-    },
-    {
-      id: "prj_3",
-      name: "p3",
-      venture: "v2",
-      vertical: "asset",
-      type: "Internal",
-      stage: "Origination",
-      status: "Blocked",
-      start_date: "2026-06-28",
-      target_date: "2026-07-31",
-      lead: "v2_p1",
-      client_shareable: false,
+      id: "prj_codev",
+      name: "CoDev Sprint",
+      venture: "PixelForge Studio",
+      vertical: "Co-Development",
+      type: "Co-Development",
+      asset: "UI Combat Kit",
+      stage: "Delivery",
+      status: "On-Hold",
+      start_date: "2026-07-05",
+      target_date: "2026-08-20",
+      lead: "Neel Rao",
+      client_shareable: true,
     },
   ],
   tasks: [
     {
-      id: "tsk_1",
-      title: "t1",
-      venture: "v1",
-      project: "p1",
-      status: "To-Do",
-      priority: "High",
-      owner: "v1_p3",
-      assignees: ["at_p1", "at_p2"],
-      due_date: "2026-07-02",
-      estimate: "2h",
-      time_logged: "0h",
-    },
-    {
-      id: "tsk_2",
-      title: "t2",
-      venture: "v1",
-      project: "p1",
+      id: "tsk_gameplay",
+      title: "Gameplay Tuning Pass",
+      venture: "Gattabara Games",
+      project: "Project Atlas",
       status: "In-Progress",
-      priority: "Medium",
-      owner: "v1_p4",
-      due_date: "2026-07-04",
-      estimate: "4h",
-      time_logged: "1h",
-    },
-    {
-      id: "tsk_3",
-      title: "t3",
-      venture: "v1",
-      project: "p2",
-      status: "Blocked",
       priority: "High",
-      owner: "v1_p3",
-      due_date: "2026-07-08",
-      estimate: "3h",
-      time_logged: "0h",
+      owner: "Neel Rao",
+      assignees: ["Neel Rao", "Aarya Singh"],
+      depends_on: [],
+      due_date: "2026-07-18",
+      estimate: "16h",
+      time_logged: "6h",
+      external_shared_with: "",
     },
     {
-      id: "tsk_4",
-      title: "t4",
-      venture: "v2",
-      project: "p3",
-      status: "Backlog",
-      priority: "Low",
-      owner: "v2_p2",
-      due_date: "2026-07-15",
-      estimate: "1h",
-      time_logged: "0h",
-    },
-    {
-      id: "tsk_5",
-      title: "t1.1",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t1",
+      id: "tsk_bossfx",
+      title: "Boss VFX Polish",
+      venture: "Gattabara Games",
+      project: "Project Atlas",
+      parent_task: "Gameplay Tuning Pass",
       status: "To-Do",
       priority: "Medium",
-      owner: "at_p1",
-      due_date: "2026-07-01",
-      estimate: "1h",
+      owner: "Marco Diaz",
+      assignees: ["Marco Diaz"],
+      depends_on: [],
+      due_date: "2026-07-21",
+      estimate: "8h",
       time_logged: "0h",
+      external_shared_with: "Marco Diaz",
     },
     {
-      id: "tsk_6",
-      title: "t1.2",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t1",
-      status: "Backlog",
-      priority: "Low",
-      owner: "at_p2",
-      due_date: "2026-07-02",
-      estimate: "1h",
-      time_logged: "0h",
-    },
-    {
-      id: "tsk_7",
-      title: "t2.1",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t2",
-      status: "In-Progress",
-      priority: "Medium",
-      owner: "v1_p4",
-      due_date: "2026-07-03",
-      estimate: "2h",
-      time_logged: "1h",
-    },
-    {
-      id: "tsk_8",
-      title: "t2.2",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t2",
-      status: "To-Do",
-      priority: "Low",
-      owner: "at_p1",
-      due_date: "2026-07-04",
-      estimate: "1h",
-      time_logged: "0h",
-    },
-    {
-      id: "tsk_9",
-      title: "t3.1",
-      venture: "v1",
-      project: "p2",
-      parent_task: "t3",
+      id: "tsk_cert",
+      title: "Console Submission Checklist",
+      venture: "Emberlane Publishing",
+      project: "Skyline Port",
       status: "Blocked",
-      priority: "High",
-      owner: "v1_p3",
-      due_date: "2026-07-06",
-      estimate: "2h",
-      time_logged: "0h",
-    },
-    {
-      id: "tsk_10",
-      title: "t3.2",
-      venture: "v1",
-      project: "p2",
-      parent_task: "t3",
-      status: "To-Do",
-      priority: "Medium",
-      owner: "at_p2",
-      due_date: "2026-07-07",
-      estimate: "1h",
-      time_logged: "0h",
+      priority: "Critical",
+      owner: "Aarya Singh",
+      assignees: ["Aarya Singh", "Sofia Chen"],
+      depends_on: ["Gameplay Tuning Pass"],
+      due_date: "2026-07-24",
+      estimate: "10h",
+      time_logged: "2h",
+      external_shared_with: "Sofia Chen",
     },
   ],
   documents: [
     {
-      id: "doc_1",
-      title: "d1",
-      date: "2026-06-28",
-      venture: "v1",
-      type: "Note",
-      body: "venture level",
+      id: "doc_atlas_gdd",
+      title: "Atlas GDD",
+      type: "GDD",
+      body: "Core combat loop, progression beats, and chapter goals for Project Atlas.",
+      file_ref: "https://drive.example.com/atlas-gdd",
+      version: 3,
+      status: "Final",
+      links: ["Gattabara Games", "Project Atlas"],
+      permission: "Internal",
+      tags: ["design", "combat", "core-loop"],
+    },
+    {
+      id: "doc_publish_agreement",
+      title: "Publishing Agreement",
+      type: "Agreement",
+      body: "Commercial structure and milestone obligations for Skyline Port.",
+      file_ref: "https://docs.example.com/skyline-agreement.pdf",
+      version: 2,
+      status: "Signed",
+      links: ["Emberlane Publishing", "Skyline Port", "Sofia Chen"],
+      permission: "Restricted",
+      tags: ["legal", "publisher"],
+    },
+    {
+      id: "doc_art_feedback",
+      title: "Art Review Feedback 01",
+      type: "Feedback",
+      body: "Review notes on the hero rig silhouette and sprint delivery quality.",
+      file_ref: "https://figma.example.com/file/art-review-01",
       version: 1,
       status: "Draft",
-      links: ["v1"],
-      permission: "Internal",
-      tags: ["seed"],
-    },
-    {
-      id: "doc_2",
-      title: "d2",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      type: "Agreement",
-      body: "project level",
-      version: 1,
-      status: "Final",
-      links: ["p1"],
-      permission: "Restricted",
-      tags: ["seed"],
-    },
-    {
-      id: "doc_3",
-      title: "d3",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      type: "Report",
-      body: "task level",
-      version: 1,
-      status: "Signed",
-      links: ["t1"],
-      permission: "Client-visible",
-      tags: ["seed"],
-    },
-  ],
-  events: [
-    {
-      id: "evt_1",
-      title: "e1",
-      date: "2026-06-28",
-      venture: "v1",
-      type: "Meeting",
-      start: "2026-06-28T09:00",
-      end: "2026-06-28T09:30",
-      participants: [],
-      location: "HQ",
-      summary: "venture level",
-      calendar_ref: "cal-v1",
-    },
-    {
-      id: "evt_2",
-      title: "e2",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      type: "Call",
-      start: "2026-06-28T10:00",
-      end: "2026-06-28T10:30",
-      participants: [],
-      location: "site",
-      summary: "project level",
-      calendar_ref: "cal-p1",
-    },
-    {
-      id: "evt_3",
-      title: "e3",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      type: "Inspection",
-      start: "2026-06-28T11:00",
-      end: "2026-06-28T11:30",
-      participants: [],
-      location: "field",
-      summary: "task level",
-      calendar_ref: "cal-t1",
+      links: ["CoDev Sprint", "Atlas Hero Rig", "Marco Diaz"],
+      permission: "Contractor-visible",
+      tags: ["art", "review"],
     },
   ],
   assets: [
     {
-      id: "ast_1",
-      name: "Indiranagar Corner Plot",
-      date: "2026-06-28",
-      venture: "v1",
-      type: "Land",
-      address: "100 Feet Road, Indiranagar, Bengaluru",
-      lat: 12.9719,
-      lng: 77.6412,
-      area: "1 ac",
-      unit: "lot",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
+      id: "ast_hero_rig",
+      name: "Atlas Hero Rig",
+      type: "Character",
+      project: "Project Atlas",
+      engine: "Blender",
+      format: "FBX",
+      version: "v3",
+      status: "In-Review",
+      file_ref: "https://drive.example.com/assets/atlas-hero-rig.fbx",
+      owner: "Neel Rao",
+      reviewer: "Aarya Singh",
+      due_date: "2026-07-20",
+      permission: "Internal",
+      tags: ["character", "hero", "combat"],
     },
     {
-      id: "ast_2",
-      name: "Whitefield Commerce Block",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      type: "Building",
-      address: "ITPL Main Road, Whitefield, Bengaluru",
-      lat: 12.9698,
-      lng: 77.7499,
-      area: "5000 sqft",
-      unit: "b1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Under-Development",
+      id: "ast_skyline_build",
+      name: "Skyline Demo Build",
+      type: "Build",
+      project: "Skyline Port",
+      engine: "Unity",
+      format: "UnityPackage",
+      version: "v0.9",
+      status: "Delivered",
+      file_ref: "https://builds.example.com/skyline-demo-0-9",
+      owner: "Aarya Singh",
+      reviewer: "Sofia Chen",
+      due_date: "2026-07-26",
+      permission: "Client-visible",
+      tags: ["build", "demo", "publisher"],
     },
     {
-      id: "ast_3",
-      name: "Jayanagar Residential Unit",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      type: "Unit",
-      address: "4th Block, Jayanagar, Bengaluru",
-      lat: 12.9279,
-      lng: 77.5839,
-      area: "1200 sqft",
-      unit: "u1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
+      id: "ast_ui_kit",
+      name: "UI Combat Kit",
+      type: "UI Kit",
+      project: "CoDev Sprint",
+      engine: "Figma",
+      format: "Figma",
+      version: "v2",
+      status: "Approved",
+      file_ref: "https://figma.example.com/file/ui-combat-kit",
+      owner: "Marco Diaz",
+      reviewer: "Neel Rao",
+      due_date: "2026-07-22",
+      permission: "Contractor-visible",
+      tags: ["ui", "hud", "prototype"],
+    },
+  ],
+  events: [
+    {
+      id: "evt_sprint",
+      title: "Atlas Sprint Planning",
+      type: "Sprint Planning",
+      start: "2026-07-15T10:00",
+      end: "2026-07-15T11:00",
+      participants: ["Aarya Singh", "Neel Rao"],
+      links: ["Project Atlas", "Gameplay Tuning Pass"],
+      location: "Discord",
+      summary: "Reviewed sprint goals, combat tuning priorities, and blocker ownership.",
+      calendar_ref: "cal-atlas-sprint-01",
     },
     {
-      id: "ast_4",
-      name: "Koramangala Studio Block",
-      date: "2026-06-29",
-      venture: "v1",
-      project: "p1",
-      type: "Building",
-      address: "80 Feet Road, Koramangala, Bengaluru",
-      lat: 12.9352,
-      lng: 77.6245,
-      area: "4200 sqft",
-      unit: "k1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
+      id: "evt_client_review",
+      title: "Skyline Publisher Review",
+      type: "Client Review",
+      start: "2026-07-17T16:00",
+      end: "2026-07-17T17:00",
+      participants: ["Aarya Singh", "Sofia Chen"],
+      links: ["Skyline Port", "Skyline Demo Build"],
+      location: "Google Meet",
+      summary: "Publisher walkthrough of latest build and milestone sign-off criteria.",
+      calendar_ref: "cal-skyline-review-01",
     },
     {
-      id: "ast_5",
-      name: "HSR Layout Office Suite",
-      date: "2026-06-29",
-      venture: "v1",
-      project: "p2",
-      type: "Unit",
-      address: "27th Main Road, HSR Layout, Bengaluru",
-      lat: 12.9116,
-      lng: 77.6474,
-      area: "1800 sqft",
-      unit: "hsr-2a",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_6",
-      name: "Hebbal Logistics Yard",
-      date: "2026-06-30",
-      venture: "v2",
-      project: "p3",
-      type: "Warehouse",
-      address: "Outer Ring Road, Hebbal, Bengaluru",
-      lat: 13.0352,
-      lng: 77.5970,
-      area: "2.4 ac",
-      unit: "yard-1",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Development",
-    },
-    {
-      id: "ast_7",
-      name: "Electronic City Plant Parcel",
-      date: "2026-06-30",
-      venture: "v2",
-      project: "p3",
-      type: "Land",
-      address: "Phase 1, Electronic City, Bengaluru",
-      lat: 12.8456,
-      lng: 77.6603,
-      area: "3 ac",
-      unit: "ec-plot",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Acquisition",
-    },
-    {
-      id: "ast_8",
-      name: "Malleshwaram Heritage House",
-      date: "2026-07-01",
-      venture: "v1",
-      type: "Building",
-      address: "Sampige Road, Malleshwaram, Bengaluru",
-      lat: 13.0035,
-      lng: 77.5706,
-      area: "3200 sqft",
-      unit: "mh-1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
-    },
-    {
-      id: "ast_9",
-      name: "Rajajinagar Mixed Block",
-      date: "2026-07-01",
-      venture: "v1",
-      project: "p2",
-      type: "Mixed",
-      address: "Chord Road, Rajajinagar, Bengaluru",
-      lat: 12.9914,
-      lng: 77.5544,
-      area: "7600 sqft",
-      unit: "rj-7",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_10",
-      name: "Sarjapur Growth Parcel",
-      date: "2026-07-01",
-      venture: "v2",
-      project: "p3",
-      type: "Land",
-      address: "Sarjapur Road, Bengaluru",
-      lat: 12.9077,
-      lng: 77.6871,
-      area: "1.8 ac",
-      unit: "sg-4",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Development",
-    },
-    {
-      id: "ast_11",
-      name: "Yelahanka Storage Hub",
-      date: "2026-07-02",
-      venture: "v2",
-      type: "Warehouse",
-      address: "Bellary Road, Yelahanka, Bengaluru",
-      lat: 13.1005,
-      lng: 77.5963,
-      area: "6800 sqft",
-      unit: "yh-3",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_12",
-      name: "Marathahalli Tech Loft",
-      date: "2026-07-02",
-      venture: "v1",
-      project: "p1",
-      type: "Unit",
-      address: "Outer Ring Road, Marathahalli, Bengaluru",
-      lat: 12.9591,
-      lng: 77.6974,
-      area: "2100 sqft",
-      unit: "mt-9",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_13",
-      name: "Banashankari Corner Site",
-      date: "2026-07-02",
-      venture: "v1",
-      type: "Land",
-      address: "Banashankari 2nd Stage, Bengaluru",
-      lat: 12.9255,
-      lng: 77.5468,
-      area: "0.75 ac",
-      unit: "bs-2",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
+      id: "evt_art_review",
+      title: "CoDev Art Review",
+      type: "Creative Review",
+      start: "2026-07-18T14:30",
+      end: "2026-07-18T15:15",
+      participants: ["Marco Diaz", "Neel Rao"],
+      links: ["CoDev Sprint", "Atlas Hero Rig", "Art Review Feedback 01"],
+      location: "Studio Office",
+      summary: "Feedback round on key poses, material breakup, and export prep.",
+      calendar_ref: "cal-codev-art-01",
     },
   ],
   transactions: [
     {
-      id: "txn_1",
-      reference: "x1",
-      venture: "v1",
+      id: "txn_milestone",
+      reference: "INV-ATLAS-001",
       direction: "Receivable",
-      amount: "100000",
+      amount: "250000",
       currency: "INR",
       status: "Raised",
-      counterparty: "c1",
-      project_asset: "a1",
-      due_date: "2026-07-05",
-      documents: ["d1"],
+      venture: "Gattabara Games",
+      project_asset: "Project Atlas",
+      due_date: "2026-07-30",
+      documents: ["Atlas GDD"],
     },
     {
-      id: "txn_2",
-      reference: "x2",
-      venture: "v1",
-      project: "p1",
+      id: "txn_publisher_fee",
+      reference: "AGR-SKY-002",
       direction: "Payable",
-      amount: "50000",
-      currency: "INR",
-      status: "Partly-Paid",
-      counterparty: "c2",
-      project_asset: "a2",
-      due_date: "2026-07-10",
-      documents: ["d2"],
-    },
-    {
-      id: "txn_3",
-      reference: "x3",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      direction: "Receivable",
-      amount: "25000",
+      amount: "90000",
       currency: "INR",
       status: "Draft",
-      counterparty: "c3",
-      project_asset: "a3",
-      due_date: "2026-07-14",
-      documents: ["d3"],
+      venture: "Emberlane Publishing",
+      project_asset: "Skyline Demo Build",
+      due_date: "2026-07-28",
+      documents: ["Publishing Agreement"],
     },
     {
-      id: "txn_4",
-      reference: "food-01",
-      venture: "v1",
-      direction: "Payable",
-      amount: "1800",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "cafe",
-      project_asset: "a1",
-      due_date: "2026-06-28",
-      documents: [],
-    },
-    {
-      id: "txn_5",
-      reference: "food-02",
-      venture: "v1",
-      project: "p1",
-      direction: "Payable",
-      amount: "1200",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "canteen",
-      project_asset: "a2",
-      due_date: "2026-06-29",
-      documents: [],
-    },
-    {
-      id: "txn_6",
-      reference: "food-03",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      direction: "Receivable",
-      amount: "950",
-      currency: "INR",
-      status: "Draft",
-      counterparty: "tea stall",
-      project_asset: "a3",
-      due_date: "2026-06-30",
-      documents: [],
-    },
-    {
-      id: "txn_7",
-      reference: "food-04",
-      venture: "v2",
-      project: "p3",
-      direction: "Payable",
-      amount: "2400",
-      currency: "INR",
-      status: "Overdue",
-      counterparty: "mess",
-      project_asset: "a1",
-      due_date: "2026-07-01",
-      documents: [],
-    },
-    {
-      id: "txn_8",
-      reference: "food-05",
-      venture: "v1",
-      project: "p2",
-      task: "t3",
-      direction: "Payable",
-      amount: "600",
-      currency: "INR",
-      status: "Partly-Paid",
-      counterparty: "water supplier",
-      project_asset: "a2",
-      due_date: "2026-07-03",
-      documents: [],
-    },
-    {
-      id: "txn_9",
-      reference: "office-01",
-      venture: "v1",
-      direction: "Payable",
-      amount: "3200",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "stationery",
-      project_asset: "a1",
-      due_date: "2026-07-04",
-      documents: [],
-    },
-    {
-      id: "txn_10",
-      reference: "office-02",
-      venture: "v2",
-      direction: "Payable",
-      amount: "8700",
-      currency: "INR",
-      status: "Draft",
-      counterparty: "printer",
-      project_asset: "a1",
-      due_date: "2026-07-06",
-      documents: [],
-    },
-    {
-      id: "txn_11",
-      reference: "food-06",
-      venture: "v1",
-      project: "p1",
-      direction: "Payable",
-      amount: "780",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "cafe",
-      project_asset: "a2",
-      due_date: "2026-07-02",
-      documents: [],
-    },
-    {
-      id: "txn_12",
-      reference: "food-07",
-      venture: "v2",
-      project: "p3",
-      direction: "Payable",
-      amount: "1640",
-      currency: "INR",
-      status: "Partly-Paid",
-      counterparty: "mess",
-      project_asset: "a1",
-      due_date: "2026-07-07",
-      documents: [],
-    },
-    {
-      id: "txn_13",
-      reference: "water-01",
-      venture: "v1",
-      project: "p2",
-      direction: "Payable",
-      amount: "560",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "water supplier",
-      project_asset: "a2",
-      due_date: "2026-07-05",
-      documents: [],
-    },
-    {
-      id: "txn_14",
-      reference: "water-02",
-      venture: "v1",
-      project: "p2",
-      task: "t3",
-      direction: "Payable",
-      amount: "420",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "water supplier",
-      project_asset: "a2",
-      due_date: "2026-07-08",
-      documents: [],
-    },
-    {
-      id: "txn_15",
-      reference: "rent-01",
-      venture: "v2",
+      id: "txn_art_vendor",
+      reference: "ART-REV-003",
       direction: "Payable",
       amount: "45000",
       currency: "INR",
-      status: "Overdue",
-      counterparty: "landlord",
-      project_asset: "a1",
-      due_date: "2026-07-01",
-      documents: [],
-    },
-    {
-      id: "txn_16",
-      reference: "rent-02",
-      venture: "v1",
-      project: "p1",
-      direction: "Payable",
-      amount: "28000",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "landlord",
-      project_asset: "a2",
-      due_date: "2026-07-10",
-      documents: [],
-    },
-    {
-      id: "txn_17",
-      reference: "travel-01",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      direction: "Payable",
-      amount: "2100",
-      currency: "INR",
-      status: "Draft",
-      counterparty: "cab",
-      project_asset: "a3",
-      due_date: "2026-07-09",
-      documents: [],
-    },
-    {
-      id: "txn_18",
-      reference: "travel-02",
-      venture: "v2",
-      project: "p3",
-      task: "t4",
-      direction: "Receivable",
-      amount: "6100",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "client travel",
-      project_asset: "a3",
-      due_date: "2026-07-12",
-      documents: [],
-    },
-    {
-      id: "txn_19",
-      reference: "fuel-01",
-      venture: "v2",
-      project: "p3",
-      direction: "Payable",
-      amount: "5400",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "fuel station",
-      project_asset: "a1",
-      due_date: "2026-07-03",
-      documents: [],
-    },
-    {
-      id: "txn_20",
-      reference: "fuel-02",
-      venture: "v1",
-      project: "p2",
-      task: "t3",
-      direction: "Payable",
-      amount: "3900",
-      currency: "INR",
       status: "Partly-Paid",
-      counterparty: "fuel station",
-      project_asset: "a2",
-      due_date: "2026-07-11",
-      documents: [],
-    },
-    {
-      id: "txn_21",
-      reference: "food-08",
-      venture: "v1",
-      direction: "Payable",
-      amount: "940",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "canteen",
-      project_asset: "a1",
-      due_date: "2026-07-04",
-      documents: [],
-    },
-    {
-      id: "txn_22",
-      reference: "food-09",
-      venture: "v2",
-      project: "p3",
-      task: "t4",
-      direction: "Payable",
-      amount: "1320",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "tea stall",
-      project_asset: "a3",
-      due_date: "2026-07-06",
-      documents: [],
-    },
-    {
-      id: "txn_23",
-      reference: "misc-01",
-      venture: "v1",
-      project: "p1",
-      direction: "Receivable",
-      amount: "12500",
-      currency: "INR",
-      status: "Draft",
-      counterparty: "client a",
-      project_asset: "a2",
-      due_date: "2026-07-14",
-      documents: [],
-    },
-    {
-      id: "txn_24",
-      reference: "misc-02",
-      venture: "v1",
-      project: "p1",
-      task: "t2",
-      direction: "Payable",
-      amount: "2750",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "vendor b",
-      project_asset: "a2",
-      due_date: "2026-07-13",
-      documents: [],
-    },
-    {
-      id: "txn_25",
-      reference: "misc-03",
-      venture: "v2",
-      direction: "Receivable",
-      amount: "22000",
-      currency: "INR",
-      status: "Draft",
-      counterparty: "client b",
-      project_asset: "a1",
-      due_date: "2026-07-15",
-      documents: [],
-    },
-    {
-      id: "txn_26",
-      reference: "misc-04",
-      venture: "v2",
-      project: "p3",
-      direction: "Payable",
-      amount: "6400",
-      currency: "INR",
-      status: "Paid",
-      counterparty: "consultant",
-      project_asset: "a3",
-      due_date: "2026-07-08",
-      documents: [],
-    },
-    {
-      id: "txn_27",
-      reference: "misc-05",
-      venture: "v1",
-      project: "p2",
-      direction: "Payable",
-      amount: "5100",
-      currency: "INR",
-      status: "Overdue",
-      counterparty: "vendor c",
-      project_asset: "a2",
-      due_date: "2026-07-01",
-      documents: [],
-    },
-    {
-      id: "txn_28",
-      reference: "misc-06",
-      venture: "v1",
-      project: "p2",
-      task: "t3",
-      direction: "Receivable",
-      amount: "7300",
-      currency: "INR",
-      status: "Raised",
-      counterparty: "client c",
-      project_asset: "a3",
-      due_date: "2026-07-16",
-      documents: [],
+      venture: "PixelForge Studio",
+      project_asset: "UI Combat Kit",
+      due_date: "2026-07-25",
+      documents: ["Art Review Feedback 01"],
     },
   ],
   roles: {
-    Founder: {
-      title: "Founder view",
-      items: [
-        ["Portfolio pulse", "3 live initiatives, 1 stalled internal stream"],
-        ["Near-term pressure", "2 items need action inside 72 hours"],
-        ["Cash movement", "1 receivable open, 2 outgoing items pending"],
-        ["Team spread", "6 people working across 4 ventures"],
-      ],
-    },
-    Partner: {
-      title: "Partner view",
-      items: [
-        ["Coverage", "Scoped to linked ventures and active mandates"],
-        ["Current lanes", "2 external workstreams need monitoring"],
-        ["Watchlist", "1 delayed item needs escalation"],
-        ["Shared files", "3 current records available in scope"],
-      ],
-    },
-    Employee: {
-      title: "Employee view",
-      items: [
-        ["My queue", "3 open items, 1 already moving"],
-        ["Logged time", "1 hour 10 minutes this week"],
-        ["Upcoming touchpoints", "2 meetings and 1 field visit ahead"],
-        ["Next move", "Clear the blocked rollout brief branch"],
-      ],
-    },
+    Founder: { title: "Founder view", items: [] },
+    Partner: { title: "Partner view", items: [] },
+    Employee: { title: "Employee view", items: [] },
   },
 };
 
 const userAccounts = [
   {
     id: "usr_1",
-    name: "ATIT Admin",
-    email: "admin@atit.com",
-    password: "atit1234",
+    name: "Gattabara Games Admin",
+    email: "admin@gattabaragames.com",
+    password: "admin1234",
     role: "Admin",
     status: "Active",
     venture_scope: "All ventures",
     table_access: tables.map((table) => table.key),
     createdAt: "2026-06-01T09:00:00.000Z",
-    createdBy: "System",
-  },
-  {
-    id: "usr_2",
-    name: "Dev Malik",
-    email: "dev@atit.com",
-    password: "dev1234",
-    role: "Founder",
-    status: "Active",
-    venture_scope: "ATIT",
-    table_access: ["ventures", "people", "projects", "tasks", "documents", "events", "transactions"],
-    createdAt: "2026-06-01T09:01:00.000Z",
-    createdBy: "System",
-  },
-  {
-    id: "usr_3",
-    name: "Meera Sethi",
-    email: "meera@atit.com",
-    password: "meera1234",
-    role: "Employee",
-    status: "Active",
-    venture_scope: "ATIT",
-    table_access: ["projects", "tasks", "documents", "events", "assets"],
-    createdAt: "2026-06-01T09:02:00.000Z",
     createdBy: "System",
   },
 ];
@@ -1269,6 +565,27 @@ function getStoredAuthUser() {
   return userAccounts.find((user) => String(user.id ?? "") === userId) ?? null;
 }
 
+function purgeLegacyAppStorage() {
+  const legacyLocalKeys = ["atit.googleMapsApiKey", "atit.localTableCache", "gattabara.googleMapsApiKey"];
+  const legacySessionKeys = ["atit.appAuthenticated", "atit.appUserId"];
+  const currentLocalKeys = [LOCAL_TABLE_CACHE_STORAGE_KEY];
+  const currentSessionKeys = [APP_SESSION_KEY, APP_SESSION_USER_KEY];
+
+  try {
+    legacyLocalKeys.forEach((key) => globalThis.localStorage?.removeItem(key));
+    currentLocalKeys.forEach((key) => globalThis.localStorage?.removeItem(key));
+  } catch {
+    // Ignore storage failures and continue with runtime state.
+  }
+
+  try {
+    legacySessionKeys.forEach((key) => globalThis.sessionStorage?.removeItem(key));
+    currentSessionKeys.forEach((key) => globalThis.sessionStorage?.removeItem(key));
+  } catch {
+    // Ignore storage failures and continue with runtime state.
+  }
+}
+
 function getUserByPassword(password) {
   const normalized = String(password ?? "").trim().toLowerCase();
   if (!normalized) return null;
@@ -1307,17 +624,11 @@ function validateUniquePasswords(excludeUserId = null) {
 const state = {
   role: "Founder",
   currentUser: null,
-  projectId: "prj_1",
-  taskId: "tsk_1",
+  projectId: null,
+  taskId: null,
   search: "",
   activeTable: "projects",
   activeNav: "dashboard",
-  assetsView: "table",
-  assetMapKeyEditorOpen: false,
-  assetMapExpanded: false,
-  assetMapViewport: null,
-  assetStreetViewAssetId: null,
-  assetMapRenderToken: 0,
   modalMode: "create",
   modalEntity: "table",
   editingRecordId: null,
@@ -1332,7 +643,6 @@ const state = {
   taskExpanded: {},
   ganttWeekStart: null,
   ganttScale: "week",
-  googleMapsApiKey: "",
   isAuthenticated: false,
   isMobileViewport: false,
   isMobileNavOpen: false,
@@ -1345,23 +655,10 @@ let remoteRefreshPromise = null;
 let remoteRealtimeChannel = null;
 let remoteRefreshIntervalId = null;
 const MOBILE_BREAKPOINT = 820;
-const GOOGLE_MAPS_API_KEY_STORAGE_KEY = "atit.googleMapsApiKey";
-const LOCAL_TABLE_CACHE_STORAGE_KEY = "atit.localTableCache";
-const APP_SESSION_USER_KEY = "atit.appUserId";
+const LOCAL_TABLE_CACHE_STORAGE_KEY = "gattabara.localTableCache";
+const APP_SESSION_USER_KEY = "gattabara.appUserId";
 const REMOTE_REFRESH_DEBOUNCE_MS = 350;
 const REMOTE_REFRESH_INTERVAL_MS = 5000;
-const googleMapsRuntime = {
-  loaderPromise: null,
-  map: null,
-  markers: [],
-  labels: [],
-  infoWindow: null,
-};
-const leafletRuntime = {
-  loaderPromise: null,
-  map: null,
-  markers: [],
-};
 
 const arrayFields = new Set(["verticals", "tags"]);
 const hierarchyAttachmentTables = new Set(["tasks", "documents", "assets", "events", "transactions"]);
@@ -1374,6 +671,7 @@ const relationFields = {
   project: { table: "projects", labelField: "name" },
   parent_task: { table: "tasks", labelField: "title" },
   owner: { table: "people", labelField: "name" },
+  reviewer: { table: "people", labelField: "name" },
   assignees: { table: "people", labelField: "name", multiple: true },
   depends_on: { table: "tasks", labelField: "title", multiple: true },
   external_shared_with: { table: "people", labelField: "name" },
@@ -1391,22 +689,23 @@ const relationFields = {
 
 const jsonColumnDefaults = {
   ventures: { verticals: [], tags: [] },
+  people: { type: [] },
   tasks: { assignees: [], depends_on: [] },
-  documents: { links: [], related_assets: [], related_events: [], related_transactions: [], tags: [] },
-  assets: { owner_ventures: [] },
-  events: { participants: [] },
+  documents: { links: [], tags: [] },
+  assets: { tags: [] },
+  events: { participants: [], links: [] },
   transactions: { documents: [] },
 };
 
 const remoteTableColumns = {
-  ventures: ["id", "name", "date", "type", "status", "verticals", "entity_form", "reg_no", "primary_contact", "tags", "created_at"],
-  people: ["id", "name", "email", "phone", "venture", "type", "role_title", "status", "access_level", "created_at"],
+  ventures: ["id", "name", "type", "status", "verticals", "entity_form", "reg_no", "primary_contact", "tags", "created_at"],
+  people: ["id", "name", "type", "email", "phone", "venture", "role_title", "access_level", "status", "created_at"],
   projects: ["id", "name", "venture", "vertical", "type", "asset", "stage", "status", "start_date", "target_date", "lead", "client_shareable", "created_at"],
   tasks: ["id", "title", "venture", "project", "parent_task", "status", "priority", "owner", "assignees", "depends_on", "due_date", "estimate", "time_logged", "external_shared_with", "created_at"],
-  documents: ["id", "title", "date", "venture", "project", "task", "type", "body", "file_ref", "version", "status", "links", "permission", "tags", "created_at"],
-  assets: ["id", "name", "date", "venture", "project", "task", "type", "address", "lat", "lng", "area", "unit", "owner_ventures", "status", "created_at"],
-  events: ["id", "title", "type", "venture", "project", "task", "date", "start", "end", "participants", "location", "summary", "calendar_ref", "created_at"],
-  transactions: ["id", "reference", "venture", "project", "task", "direction", "amount", "currency", "status", "counterparty", "project_asset", "due_date", "documents", "created_at"],
+  documents: ["id", "title", "type", "body", "file_ref", "version", "status", "links", "permission", "tags", "created_at"],
+  assets: ["id", "name", "type", "project", "engine", "format", "version", "status", "file_ref", "owner", "reviewer", "due_date", "permission", "tags", "created_at"],
+  events: ["id", "title", "type", "start", "end", "participants", "links", "location", "summary", "calendar_ref", "created_at"],
+  transactions: ["id", "reference", "direction", "amount", "currency", "status", "venture", "project_asset", "due_date", "documents", "created_at"],
 };
 
 const sidebarItems = [
@@ -1886,7 +1185,7 @@ function scheduleRemoteRefresh(options = {}) {
 function setupSupabaseLiveSync() {
   if (!supabaseClient || remoteRealtimeChannel || typeof supabaseClient.channel !== "function") return;
 
-  let channel = supabaseClient.channel("atit-live-sync");
+  let channel = supabaseClient.channel("gattabara-live-sync");
   tables.forEach((table) => {
     channel = channel.on(
       "postgres_changes",
@@ -2023,28 +1322,6 @@ function getFilteredAndSortedRows(table) {
   return rows;
 }
 
-function getGoogleMapsApiKey() {
-  const runtimeKey = String(globalThis.ATIT_GOOGLE_MAPS_API_KEY ?? globalThis.GOOGLE_MAPS_API_KEY ?? "").trim();
-  if (runtimeKey) return runtimeKey;
-
-  try {
-    return String(globalThis.localStorage?.getItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY) ?? "").trim();
-  } catch {
-    return "";
-  }
-}
-
-function persistGoogleMapsApiKey(value) {
-  const normalized = String(value ?? "").trim();
-  state.googleMapsApiKey = normalized;
-  try {
-    if (normalized) globalThis.localStorage?.setItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY, normalized);
-    else globalThis.localStorage?.removeItem(GOOGLE_MAPS_API_KEY_STORAGE_KEY);
-  } catch {
-    // Ignore storage failures and keep the in-memory value.
-  }
-}
-
 function getPersistableTableData() {
   return Object.fromEntries(
     tables.map((table) => [table.key, data[table.key] ?? []]),
@@ -2080,562 +1357,6 @@ function applyLocalTableCache() {
   } catch {
     // Ignore malformed cache and continue with runtime data.
   }
-}
-
-function hasValidAssetCoordinates(row) {
-  const lat = getAssetLatitude(row);
-  const lng = getAssetLongitude(row);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return false;
-  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return false;
-  if (lat === 0 && lng === 0) return false;
-  return true;
-}
-
-function getMappableAssets(rows) {
-  return rows.filter((row) => hasValidAssetCoordinates(row));
-}
-
-function getUnmappedAssets(rows) {
-  return rows.filter((row) => !hasValidAssetCoordinates(row));
-}
-
-function getAssetLatitude(asset) {
-  return Number(asset?.lat ?? asset?.latitude);
-}
-
-function getAssetLongitude(asset) {
-  return Number(asset?.lng ?? asset?.longitude);
-}
-
-function getAssetMapAddress(asset) {
-  const address = String(asset?.address ?? asset?.location ?? "").trim();
-  if (address) return address;
-  const lat = asset?.lat ?? asset?.latitude ?? "—";
-  const lng = asset?.lng ?? asset?.longitude ?? "—";
-  return `${lat}, ${lng}`;
-}
-
-function getAssetMarkerLabelText(asset) {
-  const name = String(asset?.name ?? "").trim();
-  if (!name) return "Asset";
-  return name.length > 28 ? `${name.slice(0, 28).trim()}...` : name;
-}
-
-function getAssetMarkerStatusText(asset) {
-  return String(asset?.status ?? "").trim();
-}
-
-function getAssetMarkerStatusClass(asset) {
-  const normalized = getStatusClassName(getAssetMarkerStatusText(asset));
-  return normalized ? ` asset-map-label-status-${normalized}` : "";
-}
-
-function getAssetStatusColor(status) {
-  const normalized = getStatusClassName(status);
-  const colors = {
-    owned: "#2f9e44",
-    "under-development": "#f08c00",
-    "under-acquisition": "#2563eb",
-    operational: "#0f766e",
-    disposed: "#c92a2a",
-  };
-  return colors[normalized] ?? "#2f6fb1";
-}
-
-function getAssetMarkerLabelMarkup(asset) {
-  const name = escapeHtml(getAssetMarkerLabelText(asset));
-  const status = escapeHtml(getAssetMarkerStatusText(asset));
-  return `
-    <span class="asset-map-label-copy">
-      <span class="asset-map-label-main">
-        <span class="asset-map-label-name">${name}</span>
-        ${status ? `<span class="asset-map-label-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
-      </span>
-      <button class="asset-map-label-street-view" type="button" data-asset-map-street-view-id="${escapeHtml(asset.id)}">Street View</button>
-    </span>
-  `;
-}
-
-function getAssetMapPopupMarkup(asset, { includeStreetView = true } = {}) {
-  const name = escapeHtml(getAssetMarkerLabelText(asset));
-  const status = escapeHtml(getAssetMarkerStatusText(asset));
-  const address = escapeHtml(getAssetMapAddress(asset));
-  return `
-    <div class="asset-map-popup">
-      <div class="asset-map-popup-main">
-        <strong class="asset-map-popup-name">${name}</strong>
-        ${status ? `<span class="asset-map-popup-status${getAssetMarkerStatusClass(asset)}">${status}</span>` : ""}
-        <span class="asset-map-popup-address">${address}</span>
-      </div>
-      ${includeStreetView ? `<button class="asset-map-label-street-view" type="button" data-asset-map-street-view-id="${escapeHtml(asset.id)}">Street View</button>` : ""}
-    </div>
-  `;
-}
-
-function setAssetMapLoading(isLoading, message = "Loading map...") {
-  const shell = document.querySelector(".asset-map-stage-inner");
-  const status = document.getElementById("asset-map-loading");
-  if (shell) {
-    shell.classList.toggle("is-loading", Boolean(isLoading));
-  }
-  if (status) {
-    status.hidden = !isLoading;
-    const copy = status.querySelector("span");
-    if (copy) copy.textContent = message;
-  }
-}
-
-function shouldUseLeafletMapFirst() {
-  const host = String(globalThis.location?.hostname ?? "").trim().toLowerCase();
-  return host === "127.0.0.1" || host === "localhost";
-}
-
-function getAssetMapCenterPosition() {
-  if (googleMapsRuntime.map?.getCenter) {
-    const center = googleMapsRuntime.map.getCenter();
-    const lat = typeof center?.lat === "function" ? center.lat() : center?.lat;
-    const lng = typeof center?.lng === "function" ? center.lng() : center?.lng;
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-
-  if (leafletRuntime.map?.getCenter) {
-    const center = leafletRuntime.map.getCenter();
-    const lat = Number(center?.lat);
-    const lng = Number(center?.lng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-
-  const googleMarker = googleMapsRuntime.markers[0];
-  if (googleMarker?.getPosition) {
-    const position = googleMarker.getPosition();
-    const lat = typeof position?.lat === "function" ? position.lat() : position?.lat;
-    const lng = typeof position?.lng === "function" ? position.lng() : position?.lng;
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-
-  const leafletMarker = leafletRuntime.markers[0];
-  if (leafletMarker?.getLatLng) {
-    const position = leafletMarker.getLatLng();
-    const lat = Number(position?.lat);
-    const lng = Number(position?.lng);
-    if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
-  }
-
-  return null;
-}
-
-function getAssetMapZoomLevel() {
-  if (googleMapsRuntime.map?.getZoom) {
-    const zoom = Number(googleMapsRuntime.map.getZoom());
-    if (Number.isFinite(zoom)) return zoom;
-  }
-
-  if (leafletRuntime.map?.getZoom) {
-    const zoom = Number(leafletRuntime.map.getZoom());
-    if (Number.isFinite(zoom)) return zoom;
-  }
-
-  return null;
-}
-
-function captureAssetMapViewport() {
-  if (state.activeNav !== "assets" || state.assetsView !== "map" || state.detailRecordId) return;
-  const center = getAssetMapCenterPosition();
-  const zoom = getAssetMapZoomLevel();
-  if (!center || !Number.isFinite(zoom)) return;
-  state.assetMapViewport = { center, zoom };
-}
-
-function setAssetMapViewport(center, zoom) {
-  if (!center || !Number.isFinite(center.lat) || !Number.isFinite(center.lng) || !Number.isFinite(zoom)) return;
-  state.assetMapViewport = { center, zoom };
-}
-
-function bindGoogleMapViewportTracking(maps) {
-  if (!googleMapsRuntime.map) return;
-  googleMapsRuntime.map.addListener("idle", () => {
-    const center = getAssetMapCenterPosition();
-    const zoom = getAssetMapZoomLevel();
-    if (!center || !Number.isFinite(zoom)) return;
-    setAssetMapViewport(center, zoom);
-  });
-}
-
-function bindLeafletMapViewportTracking() {
-  if (!leafletRuntime.map) return;
-  const syncViewport = () => {
-    const center = getAssetMapCenterPosition();
-    const zoom = getAssetMapZoomLevel();
-    if (!center || !Number.isFinite(zoom)) return;
-    setAssetMapViewport(center, zoom);
-  };
-  leafletRuntime.map.on("moveend zoomend", syncViewport);
-}
-
-function getAssetStreetViewEmbedUrl(asset) {
-  const lat = getAssetLatitude(asset);
-  const lng = getAssetLongitude(asset);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return "";
-  return `https://www.google.com/maps?q=&layer=c&cbll=${encodeURIComponent(`${lat},${lng}`)}&cbp=11,0,0,0,0&output=svembed`;
-}
-
-function openAssetStreetView(assetId) {
-  if (!assetId) return;
-  const asset = data.assets.find((item) => item.id === assetId) ?? null;
-  if (!asset || !hasValidAssetCoordinates(asset)) return;
-  captureAssetMapViewport();
-  state.assetStreetViewAssetId = assetId;
-  renderHeroPanel();
-}
-
-function closeAssetStreetView() {
-  if (!state.assetStreetViewAssetId) return;
-  captureAssetMapViewport();
-  state.assetStreetViewAssetId = null;
-  renderHeroPanel();
-}
-
-function createLeafletAssetIcon(L, color = "#2f6fb1") {
-  return L.divIcon({
-    className: "asset-map-leaflet-marker-wrap",
-    html: `
-      <span class="asset-map-leaflet-marker" aria-hidden="true" style="--asset-map-marker-color: ${escapeHtml(color)}">
-        <span class="asset-map-leaflet-marker-core"></span>
-      </span>
-    `,
-    iconSize: [24, 32],
-    iconAnchor: [12, 30],
-    popupAnchor: [0, -26],
-    tooltipAnchor: [0, -24],
-  });
-}
-
-function createGoogleMapLabelOverlay(maps, map, asset) {
-  class AssetMapLabelOverlay extends maps.OverlayView {
-    constructor() {
-      super();
-      this.position = new maps.LatLng(getAssetLatitude(asset), getAssetLongitude(asset));
-      this.element = null;
-    }
-
-    onAdd() {
-      const element = document.createElement("div");
-      element.className = "asset-map-marker-label";
-      element.innerHTML = getAssetMarkerLabelMarkup(asset);
-      this.element = element;
-      const panes = this.getPanes();
-      panes?.overlayMouseTarget?.appendChild(element);
-    }
-
-    draw() {
-      if (!this.element) return;
-      const projection = this.getProjection();
-      if (!projection) return;
-      const point = projection.fromLatLngToDivPixel(this.position);
-      if (!point) return;
-      this.element.style.left = `${point.x}px`;
-      this.element.style.top = `${point.y}px`;
-    }
-
-    onRemove() {
-      this.element?.remove();
-      this.element = null;
-    }
-  }
-
-  const overlay = new AssetMapLabelOverlay();
-  overlay.setMap(map);
-  return overlay;
-}
-
-function createGoogleMapPinIcon(maps, asset) {
-  const color = getAssetStatusColor(asset?.status);
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">
-      <path d="M15 41s12-14.6 12-24.2C27 8.4 21.6 3 15 3S3 8.4 3 16.8C3 26.4 15 41 15 41Z" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
-      <circle cx="15" cy="16.8" r="4.8" fill="#ffffff"/>
-    </svg>
-  `;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new maps.Size(30, 42),
-    anchor: new maps.Point(15, 41),
-  };
-}
-
-function resetAssetMap() {
-  googleMapsRuntime.markers.forEach((marker) => {
-    if (marker?.setMap) marker.setMap(null);
-  });
-  googleMapsRuntime.markers = [];
-  googleMapsRuntime.map = null;
-  googleMapsRuntime.infoWindow = null;
-  leafletRuntime.markers.forEach((marker) => {
-    if (marker?.remove) marker.remove();
-  });
-  leafletRuntime.markers = [];
-  if (leafletRuntime.map?.remove) leafletRuntime.map.remove();
-  leafletRuntime.map = null;
-}
-
-function loadGoogleMapsApi() {
-  if (globalThis.google?.maps) return Promise.resolve(globalThis.google.maps);
-  if (googleMapsRuntime.loaderPromise) return googleMapsRuntime.loaderPromise;
-
-  const apiKey = getGoogleMapsApiKey();
-  if (!apiKey) {
-    return Promise.reject(new Error("Google Maps API key not configured"));
-  }
-
-  googleMapsRuntime.loaderPromise = new Promise((resolve, reject) => {
-    const callbackName = `initGoogleMaps${Date.now()}`;
-    const script = document.createElement("script");
-
-    globalThis[callbackName] = () => {
-      delete globalThis[callbackName];
-      resolve(globalThis.google.maps);
-    };
-
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      delete globalThis[callbackName];
-      googleMapsRuntime.loaderPromise = null;
-      reject(new Error("Google Maps failed to load"));
-    };
-
-    document.head.appendChild(script);
-  });
-
-  return googleMapsRuntime.loaderPromise;
-}
-
-function loadLeafletAssets() {
-  if (globalThis.L?.map) return Promise.resolve(globalThis.L);
-  if (leafletRuntime.loaderPromise) return leafletRuntime.loaderPromise;
-
-  leafletRuntime.loaderPromise = new Promise((resolve, reject) => {
-    const existingStylesheet = document.querySelector('link[data-leaflet-stylesheet="true"]');
-    if (!existingStylesheet) {
-      const stylesheet = document.createElement("link");
-      stylesheet.rel = "stylesheet";
-      stylesheet.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
-      stylesheet.dataset.leafletStylesheet = "true";
-      document.head.appendChild(stylesheet);
-    }
-
-    const existingScript = document.querySelector('script[data-leaflet-script="true"]');
-    if (existingScript) {
-      existingScript.addEventListener("load", () => resolve(globalThis.L));
-      existingScript.addEventListener("error", () => reject(new Error("Leaflet failed to load")));
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    script.async = true;
-    script.defer = true;
-    script.dataset.leafletScript = "true";
-    script.onload = () => resolve(globalThis.L);
-    script.onerror = () => {
-      leafletRuntime.loaderPromise = null;
-      reject(new Error("Leaflet failed to load"));
-    };
-    document.head.appendChild(script);
-  });
-
-  return leafletRuntime.loaderPromise;
-}
-
-function focusAssetMarker(recordId) {
-  const marker = googleMapsRuntime.markers.find((entry) => entry.assetId === recordId);
-  if (marker && googleMapsRuntime.map && googleMapsRuntime.infoWindow) {
-    googleMapsRuntime.map.panTo(marker.getPosition());
-    googleMapsRuntime.map.setZoom(Math.max(googleMapsRuntime.map.getZoom() ?? 14, 14));
-    globalThis.google?.maps?.event?.trigger(marker, "click");
-    return;
-  }
-
-  const leafletMarker = leafletRuntime.markers.find((entry) => entry.assetId === recordId);
-  if (leafletMarker && leafletRuntime.map) {
-    leafletRuntime.map.setView(leafletMarker.getLatLng(), Math.max(leafletRuntime.map.getZoom() ?? 14, 14));
-    leafletMarker.openPopup();
-  }
-}
-
-async function initializeAssetMap(rows) {
-  const renderToken = ++state.assetMapRenderToken;
-  const canvas = document.getElementById("asset-map-canvas");
-  if (!canvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
-  setAssetMapLoading(true, "Loading map...");
-
-  const mappableAssets = getMappableAssets(rows);
-  if (!mappableAssets.length) {
-    resetAssetMap();
-    setAssetMapLoading(false);
-    return;
-  }
-
-  const maps = await loadGoogleMapsApi();
-  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-
-  resetAssetMap();
-  const bounds = new maps.LatLngBounds();
-  googleMapsRuntime.map = new maps.Map(canvas, {
-    center: { lat: getAssetLatitude(mappableAssets[0]), lng: getAssetLongitude(mappableAssets[0]) },
-    zoom: 12,
-    mapTypeControl: false,
-    streetViewControl: true,
-    fullscreenControl: false,
-    gestureHandling: "greedy",
-    draggable: true,
-    mapTypeId: "satellite",
-  });
-  googleMapsRuntime.infoWindow = new maps.InfoWindow();
-  const openMarkerInfo = (marker, asset) => {
-    googleMapsRuntime.infoWindow?.setContent(getAssetMapPopupMarkup(asset));
-    googleMapsRuntime.infoWindow?.open({
-      anchor: marker,
-      map: googleMapsRuntime.map,
-    });
-  };
-
-  mappableAssets.forEach((asset) => {
-    const marker = new maps.Marker({
-      map: googleMapsRuntime.map,
-      position: { lat: getAssetLatitude(asset), lng: getAssetLongitude(asset) },
-      title: String(asset.name || "Asset"),
-      icon: createGoogleMapPinIcon(maps, asset),
-      optimized: false,
-    });
-    marker.assetId = asset.id;
-    marker.addListener("click", () => openMarkerInfo(marker, asset));
-    marker.addListener("mouseover", () => openMarkerInfo(marker, asset));
-    googleMapsRuntime.markers.push(marker);
-    bounds.extend(marker.getPosition());
-  });
-
-  if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
-    googleMapsRuntime.map.setCenter(state.assetMapViewport.center);
-    googleMapsRuntime.map.setZoom(state.assetMapViewport.zoom);
-  } else if (mappableAssets.length === 1) {
-    googleMapsRuntime.map.setCenter(bounds.getCenter());
-    googleMapsRuntime.map.setZoom(17);
-  } else {
-    googleMapsRuntime.map.fitBounds(bounds, 56);
-  }
-
-  globalThis.setTimeout(() => {
-    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-    globalThis.google?.maps?.event?.trigger(googleMapsRuntime.map, "resize");
-    if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
-      googleMapsRuntime.map.setCenter(state.assetMapViewport.center);
-      googleMapsRuntime.map.setZoom(state.assetMapViewport.zoom);
-    } else if (mappableAssets.length === 1) {
-      googleMapsRuntime.map.setCenter(bounds.getCenter());
-      googleMapsRuntime.map.setZoom(17);
-    } else {
-      googleMapsRuntime.map.fitBounds(bounds, 56);
-    }
-  }, 250);
-  bindGoogleMapViewportTracking(maps);
-
-  globalThis.setTimeout(() => {
-    if (!googleMapsRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-    const activeCanvas = document.getElementById("asset-map-canvas");
-    const visibleText = String(activeCanvas?.textContent ?? "").trim();
-    if (visibleText.includes("Oops! Something went wrong.")) return;
-    setAssetMapLoading(false);
-  }, 500);
-
-  globalThis.setTimeout(() => {
-    const activeCanvas = document.getElementById("asset-map-canvas");
-    if (!activeCanvas || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-    const visibleText = String(activeCanvas.textContent ?? "").trim();
-    if (!visibleText.includes("Oops! Something went wrong.")) return;
-    setAssetMapLoading(true, "Switching to backup map...");
-    initializeLeafletAssetMap(rows).catch((fallbackError) => {
-      console.error("Leaflet fallback failed after Google Maps error surface", fallbackError);
-      setAssetMapLoading(false);
-    });
-  }, 1200);
-}
-
-async function initializeLeafletAssetMap(rows) {
-  const renderToken = ++state.assetMapRenderToken;
-  const canvas = document.getElementById("asset-map-canvas");
-  if (!canvas || state.activeNav !== "assets" || state.assetsView !== "map") return;
-  setAssetMapLoading(true, "Loading map...");
-
-  const mappableAssets = getMappableAssets(rows);
-  if (!mappableAssets.length) {
-    resetAssetMap();
-    setAssetMapLoading(false);
-    return;
-  }
-
-  const L = await loadLeafletAssets();
-  if (!document.getElementById("asset-map-canvas") || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-
-  resetAssetMap();
-  leafletRuntime.map = L.map(canvas, {
-    zoomControl: true,
-    attributionControl: true,
-    dragging: true,
-    touchZoom: true,
-    scrollWheelZoom: false,
-    tap: true,
-  });
-
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-    maxZoom: 19,
-    attribution: '&copy; Esri, Earthstar Geographics, and the GIS User Community',
-  }).addTo(leafletRuntime.map);
-
-  const bounds = [];
-  mappableAssets.forEach((asset) => {
-    const markerIcon = createLeafletAssetIcon(L, getAssetStatusColor(asset?.status));
-    const marker = L.marker([getAssetLatitude(asset), getAssetLongitude(asset)], {
-      title: String(asset.name || "Asset"),
-      icon: markerIcon,
-    }).addTo(leafletRuntime.map);
-    marker.bindPopup(`
-      ${getAssetMapPopupMarkup(asset)}
-    `);
-    marker.bindTooltip(getAssetMapPopupMarkup(asset, { includeStreetView: false }), {
-      permanent: false,
-      interactive: true,
-      direction: "top",
-      offset: [0, -14],
-      className: "asset-map-leaflet-tooltip",
-    });
-    marker.assetId = asset.id;
-    leafletRuntime.markers.push(marker);
-    bounds.push([getAssetLatitude(asset), getAssetLongitude(asset)]);
-  });
-
-  if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
-    leafletRuntime.map.setView([state.assetMapViewport.center.lat, state.assetMapViewport.center.lng], state.assetMapViewport.zoom);
-  } else if (bounds.length === 1) {
-    leafletRuntime.map.setView(bounds[0], 17);
-  } else {
-    leafletRuntime.map.fitBounds(bounds, { padding: [56, 56] });
-  }
-
-  globalThis.setTimeout(() => {
-    if (!leafletRuntime.map || state.activeNav !== "assets" || state.assetsView !== "map" || renderToken !== state.assetMapRenderToken) return;
-    leafletRuntime.map.invalidateSize();
-    if (state.assetMapViewport?.center && Number.isFinite(state.assetMapViewport?.zoom)) {
-      leafletRuntime.map.setView([state.assetMapViewport.center.lat, state.assetMapViewport.center.lng], state.assetMapViewport.zoom);
-    } else if (bounds.length === 1) {
-      leafletRuntime.map.setView(bounds[0], 17);
-    } else {
-      leafletRuntime.map.fitBounds(bounds, { padding: [56, 56] });
-    }
-    setAssetMapLoading(false);
-  }, 250);
-  bindLeafletMapViewportTracking();
 }
 
 function getRelationConfig(fieldName) {
@@ -2782,20 +1503,20 @@ function getLinkedTransactionsForDocument(documentRecord) {
 }
 
 function getLinkedAssetsForDocument(documentRecord) {
-  const assetMap = new Map();
+  const assetLookup = new Map();
   const addAsset = (value) => {
     const normalized = String(value ?? "").trim();
-    if (!normalized || assetMap.has(normalized)) return;
+    if (!normalized || assetLookup.has(normalized)) return;
     const assetRow = data.assets.find((item) => String(item.name ?? "").trim() === normalized) ?? null;
     if (!assetRow) return;
-    assetMap.set(normalized, assetRow);
+    assetLookup.set(normalized, assetRow);
   };
 
   (Array.isArray(documentRecord?.related_assets) ? documentRecord.related_assets : []).forEach(addAsset);
   getLinkedRecordsFromDocumentLinks(documentRecord, "assets").forEach((row) => addAsset(row.name));
   getLinkedTransactionsForDocument(documentRecord).forEach((row) => addAsset(row.project_asset));
 
-  return Array.from(assetMap.values());
+  return Array.from(assetLookup.values());
 }
 
 function getLinkedEventsForDocument(documentRecord) {
@@ -3251,13 +1972,13 @@ function shouldExpandTreeItem(rootTableKey, parentTableKey, depth, childTableKey
 function getTreeNodeToneClass(tableKey, record) {
   if (tableKey === "people") {
     const ventureName = record?.venture || "";
-    if (!ventureName || ventureName === "ATIT") return "";
+    if (!ventureName || ventureName === "Gattabara Games") return "";
     return getVentureTone(ventureName);
   }
 
   if (tableKey === "ventures") {
     const ventureName = record?.name || "";
-    if (!ventureName || ventureName === "ATIT") return "";
+    if (!ventureName || ventureName === "Gattabara Games") return "";
     return getVentureTone(ventureName);
   }
 
@@ -3740,8 +2461,8 @@ function renderRecordDetail(table, record) {
     ? table.fields.filter((field) => field.name !== "body")
     : table.fields;
   const renderDetailFieldValue = (field, display) => {
-    if (table.key === "documents" && field.name === "file_ref") {
-      const visitUrl = getDocumentVisitUrl(record);
+    if ((table.key === "documents" || table.key === "assets") && field.name === "file_ref") {
+      const visitUrl = getRecordVisitUrl(record, "file_ref");
       if (visitUrl) {
         return `<a class="detail-field-link" href="${escapeHtml(visitUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(display)}</a>`;
       }
@@ -4167,7 +2888,6 @@ function logoutApp() {
   setStoredAuthState(false);
   setStoredAuthUser(null);
   state.activeNav = "dashboard";
-  state.assetsView = "table";
   state.search = "";
   state.detailTableKey = null;
   state.detailRecordId = null;
@@ -4315,12 +3035,7 @@ function getCurrentViewHref() {
     url.searchParams.delete("gantt");
     url.searchParams.delete("scale");
   }
-
-  if (activeView === "assets") {
-    url.searchParams.set("assets_view", state.assetsView === "map" ? "map" : "table");
-  } else {
-    url.searchParams.delete("assets_view");
-  }
+  url.searchParams.delete("assets_view");
 
   return `${url.pathname}${url.search}`;
 }
@@ -4381,13 +3096,11 @@ function applyUrlState() {
   const view = params.get("view");
   const gantt = params.get("gantt");
   const scale = params.get("scale");
-  const assetsView = params.get("assets_view");
 
   state.activeNav = isKnownSidebarView(view) ? view : "dashboard";
   if (isTableView(state.activeNav)) {
     state.activeTable = state.activeNav;
   }
-  state.assetsView = assetsView === "map" ? "map" : "table";
   state.detailTableKey = null;
   state.detailRecordId = null;
   state.detailTreeOpen = false;
@@ -5017,14 +3730,38 @@ function getStatusClassName(status) {
   return normalized || "";
 }
 
+function getBadgeToneClass(value, variant = "records") {
+  const normalized = getStatusClassName(value);
+  if (!normalized) return "";
+
+  let hash = 0;
+  for (let index = 0; index < normalized.length; index += 1) {
+    hash = (hash * 31 + normalized.charCodeAt(index)) % 5;
+  }
+
+  return `${variant}-badge-tone-${hash + 1}`;
+}
+
 function renderBadge(value, variant = "records", prefix = "status") {
   const badgeClass = getStatusClassName(value);
   if (!badgeClass) return escapeHtml(String(value || "—"));
-  return `<span class="${variant}-${prefix}-badge ${variant}-${prefix}-${badgeClass}">${escapeHtml(String(value))}</span>`;
+  const toneClass = getBadgeToneClass(value, variant);
+  return `<span class="${variant}-${prefix}-badge ${variant}-${prefix}-${badgeClass} ${toneClass}">${escapeHtml(String(value))}</span>`;
 }
 
 function renderTaskStatusBadge(status, variant = "records") {
   return renderBadge(status, variant, "status");
+}
+
+function renderTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "type");
+}
+
+function renderBadgeList(values, variant = "records", prefix = "type") {
+  if (!Array.isArray(values) || !values.length) return "—";
+  return values
+    .map((value) => renderBadge(value, variant, prefix))
+    .join(" ");
 }
 
 function renderEventTypeBadge(type, variant = "records") {
@@ -5062,12 +3799,12 @@ function formatCell(tableKey, column, row) {
     return formatPersonDisplayLabel(value) || "—";
   }
   if (Array.isArray(value)) return formatList(value);
-  if (tableKey === "people" && column === "type") return formatList(value);
   if (tableKey === "transactions" && column === "amount") return formatTransactionAmount(value, row.currency);
   return String(value);
 }
 
 function renderCellMarkup(tableKey, column, row) {
+  const rawValue = row?.[column];
   const value = formatCell(tableKey, column, row);
   if (tableKey === "documents" && column === "body") {
     return `<span class="document-body-preview">${escapeHtml(value === "—" ? "" : value)}</span>`;
@@ -5075,23 +3812,19 @@ function renderCellMarkup(tableKey, column, row) {
   if (tableKey === "documents" && (column === "venture" || column === "project") && value === "—") {
     return "-";
   }
-  if ((tableKey === "tasks" || tableKey === "projects") && column === "status" && value !== "—") {
-    return renderTaskStatusBadge(value, "records");
+  if (column === "type") {
+    if (Array.isArray(rawValue)) {
+      return renderBadgeList(rawValue, "records", "type");
+    }
+    if (value !== "—") {
+      return renderTypeBadge(value, "records");
+    }
   }
-  if (tableKey === "documents" && column === "status" && value !== "—") {
-    return renderDocumentStatusBadge(value, "records");
+  if (column === "status" && value !== "—") {
+    return renderTaskStatusBadge(value, "records");
   }
   if (tableKey === "transactions" && column === "direction" && value !== "—") {
     return renderDirectionBadge(value, "records");
-  }
-  if (tableKey === "assets" && column === "status" && value !== "—") {
-    return renderAssetStatusBadge(value, "records");
-  }
-  if (tableKey === "ventures" && column === "status" && value !== "—") {
-    return renderVentureStatusBadge(value, "records");
-  }
-  if (tableKey === "events" && column === "type" && value !== "—") {
-    return renderEventTypeBadge(value, "records");
   }
   return escapeHtml(value);
 }
@@ -5100,8 +3833,8 @@ function renderSerialNumber(value) {
   return `<span class="record-serial">${escapeHtml(String(value))}</span>`;
 }
 
-function getDocumentVisitUrl(record) {
-  const raw = String(record?.file_ref ?? "").trim();
+function getRecordVisitUrl(record, fieldName = "file_ref") {
+  const raw = String(record?.[fieldName] ?? "").trim();
   if (!raw) return "";
   try {
     return new URL(raw).toString();
@@ -5124,7 +3857,7 @@ function renderRecordsBody(table, rows) {
       <td class="records-serial-cell">${renderSerialNumber(index + 1)}</td>
       ${table.listColumns.map((column) => `<td>${renderCellMarkup(table.key, column, row)}</td>`).join("")}
       <td class="records-actions-cell">
-        ${table.key === "documents" && getDocumentVisitUrl(row)
+        ${table.key === "documents" && getRecordVisitUrl(row, "file_ref")
           ? `<button class="record-action-button" type="button" data-record-action="visit" data-record-id="${escapeHtml(row.id)}">Visit</button>`
           : ""}
         ${renderRecordActionIconButton("edit", `Edit ${row.name || row.title || row.reference || "record"}`, `data-record-action="edit" data-record-id="${escapeHtml(row.id)}"`)}
@@ -5341,10 +4074,6 @@ function bindTaskExpandActions() {
 }
 
 function refreshTableView(table) {
-  if (table.key === "assets" && state.assetsView === "map") {
-    renderHeroPanel();
-    return;
-  }
   updateRecordsTable(table);
 }
 
@@ -5374,63 +4103,6 @@ function updateRecordsTable(table) {
   bindRecordOpenActions(table);
 }
 
-function bindAssetMapActions(rows) {
-  document.querySelectorAll("[data-assets-view]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const nextView = button.dataset.assetsView === "map" ? "map" : "table";
-      if (state.assetsView === nextView) return;
-      state.assetsView = nextView;
-      state.assetMapExpanded = false;
-      state.detailTableKey = null;
-      state.detailRecordId = null;
-      syncCurrentViewUrl();
-      renderHeroPanel();
-    });
-  });
-
-  if (state.activeNav !== "assets" || state.assetsView !== "map") return;
-
-  document.querySelectorAll("[data-asset-map-open]").forEach((button) => {
-    button.addEventListener("click", () => {
-      const recordId = button.getAttribute("data-asset-map-open");
-      if (!recordId) return;
-      openRecordDetail("assets", recordId, { preserveNav: true });
-    });
-  });
-
-  document.querySelector("[data-asset-map-expand]")?.addEventListener("click", () => {
-    state.assetMapExpanded = !state.assetMapExpanded;
-    renderHeroPanel();
-  });
-
-  const initializeMap = shouldUseLeafletMapFirst()
-    ? initializeLeafletAssetMap(rows)
-    : initializeAssetMap(rows).catch((error) => {
-      console.error("Google Maps failed, falling back to Leaflet", error);
-      return initializeLeafletAssetMap(rows).catch((fallbackError) => {
-        const canvas = document.getElementById("asset-map-canvas");
-        if (!canvas) return;
-        canvas.outerHTML = `
-          <div class="asset-map-empty">
-            <strong>Map failed to load</strong>
-            <p>${escapeHtml(fallbackError?.message ?? error?.message ?? "Unknown error")}</p>
-          </div>
-        `;
-      });
-    });
-
-  Promise.resolve(initializeMap).catch((error) => {
-    const canvas = document.getElementById("asset-map-canvas");
-    if (!canvas) return;
-    canvas.outerHTML = `
-      <div class="asset-map-empty">
-        <strong>Map failed to load</strong>
-        <p>${escapeHtml(error?.message ?? "Unknown error")}</p>
-      </div>
-    `;
-  });
-}
-
 function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptions) {
   const showVentureFilter = ventureOptions.length > 0;
   const showProjectFilter = projectOptions.length > 0;
@@ -5439,7 +4111,6 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
   const eventTypeOptions = table.key === "events" ? getFilterOptions("events", "type") : [];
   const assetStatusOptions = table.key === "assets" ? getFilterOptions("assets", "status") : [];
   const searchPlaceholder = `Search ${escapeHtml(table.title.toLowerCase())}...`;
-  const showAssetsViewToggle = table.key === "assets";
 
   return `
     <div class="records-toolbar">
@@ -5507,144 +4178,7 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
             </label>
           `}
         </div>
-        ${showAssetsViewToggle ? `
-          <div class="records-view-toggle" role="tablist" aria-label="Assets views">
-            <button class="records-view-button ${state.assetsView === "table" ? "active" : ""}" type="button" data-assets-view="table" aria-label="Table view" title="Table view">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3.5" y="4.5" width="17" height="15" rx="2"></rect>
-                <path d="M3.5 10h17"></path>
-                <path d="M9 4.5v15"></path>
-                <path d="M15 4.5v15"></path>
-              </svg>
-            </button>
-            <button class="records-view-button ${state.assetsView === "map" ? "active" : ""}" type="button" data-assets-view="map" aria-label="Map view" title="Map view">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M9 18 3.8 20.2A.6.6 0 0 1 3 19.64V6.4a1 1 0 0 1 .62-.92L9 3"></path>
-                <path d="M15 6 9 3v15l6 3m0-15 5.2-2.2a.6.6 0 0 1 .8.56v13.24a1 1 0 0 1-.62.92L15 21"></path>
-                <path d="M15 6v15"></path>
-                <path d="M12 11.5a1.9 1.9 0 1 0 0-3.8 1.9 1.9 0 0 0 0 3.8Z"></path>
-              </svg>
-            </button>
-          </div>
-        ` : ""}
         <button id="new-record-button" class="new-record-button" type="button">+</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderAssetMapPanel(rows) {
-  const mappableAssets = getMappableAssets(rows);
-  const unmappedAssets = getUnmappedAssets(rows);
-  const apiKey = state.googleMapsApiKey || getGoogleMapsApiKey();
-  const activeStreetViewAsset = state.assetStreetViewAssetId
-    ? rows.find((asset) => asset.id === state.assetStreetViewAssetId) ?? data.assets.find((asset) => asset.id === state.assetStreetViewAssetId) ?? null
-    : null;
-  const stageToolbar = `
-    <div class="asset-map-stage-toolbar">
-      <div class="asset-map-type-badge" aria-label="Satellite view">Satellite</div>
-      <button class="record-action-button asset-map-expand-button" type="button" data-asset-map-expand aria-label="${state.assetMapExpanded ? "Restore map size" : "Expand map"}" title="${state.assetMapExpanded ? "Restore map size" : "Expand map"}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          ${state.assetMapExpanded
-            ? `<path d="M9 15H5v4"></path>
-               <path d="M15 9h4V5"></path>
-               <path d="M19 9l-5-5"></path>
-               <path d="M5 15l5 5"></path>`
-            : `<path d="M15 5h4v4"></path>
-               <path d="M9 19H5v-4"></path>
-               <path d="M19 5l-6 6"></path>
-               <path d="M5 19l6-6"></path>`}
-        </svg>
-      </button>
-    </div>
-  `;
-  const mapBody = !apiKey
-    ? `
-      <div class="asset-map-empty">
-        <strong>Google Maps API key required</strong>
-        <p>Google Maps is unavailable without a valid key. The fallback map will appear automatically when available.</p>
-      </div>
-    `
-    : !mappableAssets.length
-      ? `
-        <div class="asset-map-empty">
-          <strong>No mapped assets yet</strong>
-          <p>Add valid latitude and longitude values to asset records. Assets with coordinates set to 0, 0 are ignored.</p>
-        </div>
-      `
-      : `
-        <div class="asset-map-stage-inner">
-          ${stageToolbar}
-          <div id="asset-map-canvas" class="asset-map-canvas" aria-label="Asset locations map"></div>
-          ${activeStreetViewAsset ? `
-            <div class="asset-street-view-panel">
-              <div class="asset-street-view-head">
-                <div class="asset-street-view-copy">
-                  <strong>${escapeHtml(activeStreetViewAsset.name || "Asset")}</strong>
-                  <span>Street View</span>
-                </div>
-                <button class="record-action-button asset-street-view-close" type="button" data-asset-street-view-close aria-label="Close Street View" title="Close Street View">Close</button>
-              </div>
-              <div class="asset-street-view-frame-wrap">
-                <iframe
-                  class="asset-street-view-frame"
-                  src="${escapeHtml(getAssetStreetViewEmbedUrl(activeStreetViewAsset))}"
-                  title="Street View for ${escapeHtml(activeStreetViewAsset.name || "asset")}"
-                  loading="lazy"
-                  referrerpolicy="no-referrer-when-downgrade"
-                  allowfullscreen
-                ></iframe>
-              </div>
-            </div>
-          ` : ""}
-          <div id="asset-map-loading" class="asset-map-loading" aria-live="polite">
-            <div class="asset-map-loading-card">
-              <span>Loading map...</span>
-            </div>
-          </div>
-        </div>
-      `;
-
-  return `
-    <div class="asset-map-shell ${state.assetMapExpanded ? "is-expanded" : ""}">
-      <div class="asset-map-summary">
-        <article class="asset-map-stat">
-          <span>Visible assets</span>
-          <strong>${rows.length}</strong>
-        </article>
-        <article class="asset-map-stat">
-          <span>Pinned on map</span>
-          <strong>${mappableAssets.length}</strong>
-        </article>
-        <article class="asset-map-stat">
-          <span>Missing coordinates</span>
-          <strong>${unmappedAssets.length}</strong>
-        </article>
-      </div>
-      <div class="asset-map-layout">
-        <section class="asset-map-stage">
-          ${mapBody}
-        </section>
-        <aside class="asset-map-list">
-          <div class="asset-map-list-head">
-            <h3>Visible assets</h3>
-            <p>${mappableAssets.length} with coordinates and labels</p>
-          </div>
-          <div class="asset-map-list-body">
-            ${rows.map((asset) => `
-              <article class="asset-map-card ${hasValidAssetCoordinates(asset) ? "" : "is-unmapped"}">
-                <div class="asset-map-card-copy">
-                  <strong>${escapeHtml(asset.name || "Untitled asset")}</strong>
-                  <span>${escapeHtml(asset.type || "Unknown type")}</span>
-                  <span>${escapeHtml(getAssetMapAddress(asset))}</span>
-                </div>
-                <div class="asset-map-card-actions">
-                  <button class="record-action-button" type="button" data-asset-map-open="${escapeHtml(asset.id)}">Open</button>
-                </div>
-              </article>
-            `).join("") || `<div class="asset-map-empty-list">No assets match the current filters.</div>`}
-          </div>
-        </aside>
       </div>
     </div>
   `;
@@ -5667,17 +4201,6 @@ function renderRecordsTable(table) {
         ${toolbar}
         <div id="records-content" class="people-records">
           ${renderPeopleRecords(rows)}
-        </div>
-      </div>
-    `;
-  }
-
-  if (table.key === "assets" && state.assetsView === "map") {
-    return `
-      <div class="page-view page-view-records">
-        ${toolbar}
-        <div id="records-content" class="asset-map-records">
-          ${renderAssetMapPanel(rows)}
         </div>
       </div>
     `;
@@ -5721,7 +4244,7 @@ function bindRecordRowActions(table) {
       const { recordAction, recordId } = button.dataset;
       if (recordAction === "visit") {
         const record = data[table.key]?.find((item) => item.id === recordId) ?? null;
-        const visitUrl = getDocumentVisitUrl(record);
+        const visitUrl = getRecordVisitUrl(record, "file_ref");
         if (visitUrl) window.open(visitUrl, "_blank", "noopener,noreferrer");
       }
       if (recordAction === "edit") {
@@ -5738,10 +4261,6 @@ function snapshotCurrentView() {
   return {
     activeNav: state.activeNav,
     activeTable: state.activeTable,
-    assetsView: state.assetsView,
-    assetMapExpanded: state.assetMapExpanded,
-    assetMapViewport: state.assetMapViewport ? { ...state.assetMapViewport, center: { ...state.assetMapViewport.center } } : null,
-    assetStreetViewAssetId: state.assetStreetViewAssetId,
     detailTableKey: state.detailTableKey,
     detailRecordId: state.detailRecordId,
     detailTreeOpen: state.detailTreeOpen,
@@ -5752,20 +4271,13 @@ function restoreView(view = null) {
   const targetView = view ?? {
     activeNav: "dashboard",
     activeTable: state.activeTable,
-    assetsView: state.assetsView,
     detailTableKey: null,
     detailRecordId: null,
     detailTreeOpen: false,
-    assetMapViewport: null,
-    assetStreetViewAssetId: null,
   };
 
   state.activeNav = targetView.activeNav;
   state.activeTable = targetView.activeTable;
-  state.assetsView = targetView.assetsView ?? "table";
-  state.assetMapExpanded = Boolean(targetView.assetMapExpanded);
-  state.assetMapViewport = targetView.assetMapViewport ? { ...targetView.assetMapViewport, center: { ...targetView.assetMapViewport.center } } : null;
-  state.assetStreetViewAssetId = targetView.assetStreetViewAssetId ?? null;
   state.detailTableKey = targetView.detailTableKey;
   state.detailRecordId = targetView.detailRecordId;
   state.detailTreeOpen = targetView.detailTreeOpen;
@@ -5773,11 +4285,6 @@ function restoreView(view = null) {
   renderSidebarNav();
   renderMeta();
   renderHeroPanel();
-  if (state.activeNav === "assets" && state.assetsView === "map" && !state.detailRecordId) {
-    globalThis.requestAnimationFrame(() => {
-      globalThis.scrollTo({ top: 0, behavior: "auto" });
-    });
-  }
 }
 
 function goBackFromDetail() {
@@ -5801,7 +4308,6 @@ function openRecordDetail(tableKey, recordId, options = {}) {
   state.detailRecordId = recordId;
   state.detailTreeOpen = false;
   state.detailTreeScroll = null;
-  state.assetStreetViewAssetId = null;
   renderSidebarNav();
   renderMeta();
   renderHeroPanel();
@@ -5827,15 +4333,8 @@ function getActiveDetailRecord() {
 
 function renderHeroPanel() {
   captureDetailTreeScroll();
-  if (state.activeNav === "assets" && state.assetsView === "map" && !state.detailRecordId) {
-    captureAssetMapViewport();
-  }
   const detail = getActiveDetailRecord();
   el.heroPanel.classList.toggle("hero-panel-gantt", state.activeNav === "gantt" && !detail);
-  if (state.activeNav !== "assets" || state.assetsView !== "map" || detail) {
-    state.assetMapRenderToken += 1;
-    resetAssetMap();
-  }
   if (detail && (detail.table.key === state.activeNav || state.activeNav === "gantt")) {
     el.heroPanel.innerHTML = renderRecordDetail(detail.table, detail.record);
     restoreDetailTreeScroll();
@@ -5940,7 +4439,6 @@ function renderHeroPanel() {
   el.recordsTypeFilter = document.getElementById("records-type-filter");
   el.recordsStatusFilter = document.getElementById("records-status-filter");
   el.recordsOrderFilter = document.getElementById("records-order-filter");
-  bindAssetMapActions(getFilteredAndSortedRows(table));
   if (el.recordsVentureFilter) {
     el.recordsVentureFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).venture = event.target.value;
@@ -6382,6 +4880,30 @@ function renderField(field, record = null, currentTableKey = "") {
           <option value="">Select</option>
           ${fieldOptions.map((option) => `<option value="${escapeHtml(option)}" ${fieldValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
+      </label>
+    `;
+  }
+
+  if (field.type === "multi-select") {
+    const fieldOptions = field.options ?? [];
+    const summaryText = selectedValues.length
+      ? selectedValues.join(", ")
+      : "Select one or more";
+
+    return `
+      <label class="form-field">
+        <span>${label}</span>
+        <details class="multi-select-dropdown">
+          <summary class="multi-select-summary">${escapeHtml(summaryText)}</summary>
+          <div class="multi-select-menu">
+            ${fieldOptions.map((option) => `
+              <label class="multi-select-option">
+                <input type="checkbox" name="${escapeHtml(field.name)}" value="${escapeHtml(option)}" ${selectedValues.includes(option) ? "checked" : ""} />
+                <span>${escapeHtml(option)}</span>
+              </label>
+            `).join("")}
+          </div>
+        </details>
       </label>
     `;
   }
@@ -6851,6 +5373,11 @@ function buildRecordFromForm(table) {
       return;
     }
 
+    if (field.type === "multi-select") {
+      record[field.name] = formData.getAll(field.name).map((value) => String(value).trim()).filter(Boolean);
+      return;
+    }
+
     const rawValue = String(formData.get(field.name) ?? "").trim();
     if (!rawValue) {
       record[field.name] = "";
@@ -6885,11 +5412,20 @@ function buildRecordFromForm(table) {
   return normalizeHierarchicalRecord(table.key, record, state.editingRecordId ?? "");
 }
 
+function validateRecordBeforeSave(table, record) {
+  return { valid: true, message: "" };
+}
+
 async function saveRecord() {
   const table = tables.find((item) => item.key === state.activeTable);
   if (!table) return;
 
   const payload = buildRecordFromForm(table);
+  const validation = validateRecordBeforeSave(table, payload);
+  if (!validation.valid) {
+    window.alert(validation.message);
+    return;
+  }
   const previousRows = cloneRows(data[table.key] ?? []);
   let nextRecord = null;
   const isEdit = state.modalMode === "edit" && state.editingRecordId;
@@ -7115,23 +5651,6 @@ function bindEvents() {
   });
 
   el.heroPanel.addEventListener("click", (event) => {
-    if (event.target instanceof Element) {
-      const streetViewButton = event.target.closest("[data-asset-map-street-view-id]");
-      if (streetViewButton instanceof HTMLElement) {
-        event.stopPropagation();
-        const assetId = streetViewButton.getAttribute("data-asset-map-street-view-id");
-        if (assetId) openAssetStreetView(assetId);
-        return;
-      }
-
-      const streetViewClose = event.target.closest("[data-asset-street-view-close]");
-      if (streetViewClose instanceof HTMLElement) {
-        event.stopPropagation();
-        closeAssetStreetView();
-        return;
-      }
-    }
-
     const target = event.target instanceof Element ? event.target.closest("[data-gantt-shift],[data-gantt-today],[data-gantt-month-shift],[data-gantt-nav-shift],[data-gantt-open]") : null;
     if (!(target instanceof HTMLElement) || state.activeNav !== "gantt") return;
 
@@ -7259,7 +5778,7 @@ async function init() {
   el.confirmCancelButton = document.getElementById("confirm-cancel");
   el.confirmDeleteButton = document.getElementById("confirm-delete");
 
-  state.googleMapsApiKey = getGoogleMapsApiKey();
+  purgeLegacyAppStorage();
   applyUrlState();
   state.isMobileViewport = window.innerWidth <= MOBILE_BREAKPOINT;
   bindEvents();
@@ -7274,6 +5793,7 @@ async function init() {
   else renderLoginScreen("");
   applyLocalTableCache();
   normalizeAllHierarchyData();
+  persistLocalTableCache();
   renderAll();
   setupSupabaseLiveSync();
   setupRemoteRefreshPolling();
