@@ -5091,12 +5091,24 @@ function renderDocumentStatusBadge(status, variant = "records") {
   return renderBadge(status, variant, "document-status");
 }
 
+function renderDocumentTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "document-type");
+}
+
 function renderDirectionBadge(direction, variant = "records") {
   return renderBadge(direction, variant, "direction");
 }
 
+function renderAssetTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "asset-type");
+}
+
 function renderAssetStatusBadge(status, variant = "records") {
   return renderBadge(status, variant, "asset-status");
+}
+
+function renderTransactionStatusBadge(status, variant = "records") {
+  return renderBadge(status, variant, "transaction-status");
 }
 
 function renderVentureStatusBadge(status, variant = "records") {
@@ -5137,8 +5149,17 @@ function renderCellMarkup(tableKey, column, row) {
   if (tableKey === "documents" && column === "status" && value !== "—") {
     return renderDocumentStatusBadge(value, "records");
   }
+  if (tableKey === "documents" && column === "type" && value !== "—") {
+    return renderDocumentTypeBadge(value, "records");
+  }
   if (tableKey === "transactions" && column === "direction" && value !== "—") {
     return renderDirectionBadge(value, "records");
+  }
+  if (tableKey === "transactions" && column === "status" && value !== "—") {
+    return renderTransactionStatusBadge(value, "records");
+  }
+  if (tableKey === "assets" && column === "type" && value !== "—") {
+    return renderAssetTypeBadge(value, "records");
   }
   if (tableKey === "assets" && column === "status" && value !== "—") {
     return renderAssetStatusBadge(value, "records");

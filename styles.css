@@ -1464,9 +1464,12 @@ input[type="search"] {
 .records-status-badge,
 .attention-event-badge,
 .records-event-badge,
+.records-document-type-badge,
 .records-document-status-badge,
 .records-direction-badge,
+.records-asset-type-badge,
 .records-asset-status-badge,
+.records-transaction-status-badge,
 .records-venture-status-badge {
   display: inline-flex;
   align-items: center;
@@ -1483,9 +1486,12 @@ input[type="search"] {
 
 .records-status-badge,
 .records-event-badge,
+.records-document-type-badge,
 .records-document-status-badge,
 .records-direction-badge,
+.records-asset-type-badge,
 .records-asset-status-badge,
+.records-transaction-status-badge,
 .records-venture-status-badge {
   padding: 4px 9px;
 }
@@ -1595,6 +1601,60 @@ input[type="search"] {
   background: rgba(254, 243, 199, 0.92);
 }
 
+.records-document-type-note {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-document-type-report {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-document-type-agreement {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-document-type-drawing {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-document-type-photo {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-document-type-model {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-document-type-proposal {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-document-type-research {
+  color: #1d4ed8;
+  border-color: rgba(29, 78, 216, 0.22);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-document-type-comms {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
 .records-direction-receivable {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
@@ -1605,6 +1665,42 @@ input[type="search"] {
   color: #ea580c;
   border-color: rgba(234, 88, 12, 0.22);
   background: rgba(255, 237, 213, 0.92);
+}
+
+.records-asset-type-building {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-asset-type-land {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-asset-type-unit {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-asset-type-theatre {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-asset-type-warehouse {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-asset-type-mixed {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
 }
 
 .records-asset-status-under-acquisition {
@@ -1635,6 +1731,42 @@ input[type="search"] {
   color: #dc2626;
   border-color: rgba(220, 38, 38, 0.2);
   background: rgba(254, 226, 226, 0.92);
+}
+
+.records-transaction-status-draft {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-transaction-status-raised {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-transaction-status-partly-paid {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-transaction-status-paid {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-transaction-status-overdue {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+  background: rgba(254, 226, 226, 0.92);
+}
+
+.records-transaction-status-written-off {
+  color: #475569;
+  border-color: rgba(71, 85, 105, 0.22);
+  background: rgba(226, 232, 240, 0.92);
 }
 
 .records-venture-status-prospect {
