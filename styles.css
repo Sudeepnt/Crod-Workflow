@@ -4588,6 +4588,10 @@ input[type="search"] {
     min-height: 0;
   }
 
+  .page-view-gantt .gantt-title-row h2 {
+    display: none;
+  }
+
   .page-view-gantt .gantt-toolbar-left {
     width: 100%;
     justify-content: flex-start;
