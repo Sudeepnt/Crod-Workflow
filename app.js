@@ -39,7 +39,7 @@ const tables = [
     title: "Projects",
     singular: "Project",
     summary: "Execution layers across ventures",
-    listColumns: ["name", "venture", "status", "lead", "created_at", "target_date"],
+    listColumns: ["name", "venture", "type", "status", "lead", "created_at", "target_date"],
     fields: [
       { name: "name", label: "Name", type: "text", required: true },
       { name: "venture", label: "Venture", type: "text" },
@@ -47,7 +47,7 @@ const tables = [
       { name: "type", label: "Type", type: "select", options: ["Development", "Marketing", "Acquisition", "Leasing", "Infra", "CapitalRaise", "Logistics", "Internal"] },
       { name: "asset", label: "Asset", type: "text" },
       { name: "stage", label: "Stage", type: "select", options: ["Origination", "Scoping", "Mandate", "Execution", "Delivery", "Closure"] },
-      { name: "status", label: "Status", type: "select", options: ["Active", "On-Hold", "Blocked", "Completed", "Cancelled"] },
+      { name: "status", label: "Status", type: "select", options: ["Prospect", "Active", "On-Hold", "Blocked", "Completed", "Cancelled"] },
       { name: "start_date", label: "Start date", type: "date" },
       { name: "target_date", label: "Target date", type: "date" },
       { name: "lead", label: "Lead", type: "text" },
@@ -4876,29 +4876,23 @@ function renderGanttChart() {
     ...eventRows.map((item) => renderBar(item, "event")),
   ];
   const visibleRowCount = gridRows.filter(Boolean).length;
-  const ganttSidebarExpanded = state.ganttSidebarExpanded ?? {};
   const ganttWorkstreamsCollapsed = state.ganttWorkstreamsCollapsed ?? state.isMobileViewport;
-  const sidebarSection = (title, count, rows, overflowText, tableKey = "", limit = rows.length) => {
-    const expanded = Boolean(ganttSidebarExpanded[tableKey]);
-    const visibleRows = expanded ? rows : rows.slice(0, limit);
-    const hasOverflow = rows.length > limit;
-
+  const sidebarSection = (title, count, rows) => {
     return `
-    <section class="gantt-workstream-section" style="--gantt-section-row-count:${Math.max(visibleRows.length, 1)};">
+    <section class="gantt-workstream-section" style="--gantt-section-row-count:${Math.max(rows.length, 1)};">
       <div class="gantt-workstream-head">
         <strong>${escapeHtml(title)}</strong>
         <em>${count}</em>
         <span class="gantt-section-more">•••</span>
       </div>
       <div class="gantt-workstream-list">
-        ${visibleRows.map((row, index) => `
+        ${rows.map((row) => `
           <div class="gantt-workstream-item${row.depth ? " is-subtask" : ""}" style="${row.depth ? `--gantt-indent:${row.depth};` : ""}">
             <span class="gantt-dot ${row.color ? `gantt-dot-${row.color}` : ""}"></span>
             <strong>${escapeHtml(row.key)}</strong>
             <span>${escapeHtml(row.label)}</span>
           </div>
         `).join("")}
-        ${hasOverflow ? `<button class="gantt-view-all" type="button" data-gantt-view-all="${escapeHtml(tableKey)}">${escapeHtml(expanded ? "Show less" : overflowText)}</button>` : ""}
       </div>
     </section>
   `;};
@@ -4934,9 +4928,9 @@ function renderGanttChart() {
               <span>Workstreams</span>
               <button class="gantt-workstreams-toggle" type="button" data-gantt-workstreams-toggle aria-expanded="${!ganttWorkstreamsCollapsed}" aria-label="${ganttWorkstreamsCollapsed ? "Expand workstreams" : "Minimize workstreams"}">${ganttWorkstreamsCollapsed ? "›" : "‹"}</button>
             </div>
-            ${sidebarSection("Projects", projectRows.length, projectRows, "", "projects")}
-            ${sidebarSection("Tasks", taskRows.length, taskRows, taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "", "tasks", 5)}
-            ${sidebarSection("Events", eventRows.length, eventRows, eventRows.length > 6 ? `View all ${eventRows.length} events` : "", "events", 6)}
+            ${sidebarSection("Projects", projectRows.length, projectRows)}
+            ${sidebarSection("Tasks", taskRows.length, taskRows)}
+            ${sidebarSection("Events", eventRows.length, eventRows)}
           </aside>
           <main class="gantt-timeline">
             <div class="gantt-timeline-days">
@@ -5148,6 +5142,10 @@ function renderDocumentTypeBadge(type, variant = "records") {
   return renderBadge(type, variant, "document-type");
 }
 
+function renderProjectTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "project-type");
+}
+
 function renderDirectionBadge(direction, variant = "records") {
   return renderBadge(direction, variant, "direction");
 }
@@ -5205,6 +5203,9 @@ function renderCellMarkup(tableKey, column, row) {
   }
   if ((tableKey === "tasks" || tableKey === "projects") && column === "status" && value !== "—") {
     return renderTaskStatusBadge(value, "records");
+  }
+  if (tableKey === "projects" && column === "type" && value !== "—") {
+    return renderProjectTypeBadge(value, "records");
   }
   if (tableKey === "documents" && column === "status" && value !== "—") {
     return renderDocumentStatusBadge(value, "records");

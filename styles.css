@@ -901,11 +901,16 @@ input[type="search"] {
   gap: 0;
   min-height: 0;
   padding: 8px 0 0 20px;
-  height: 100%;
+  height: auto;
+  max-height: calc(5 * 28px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .gantt-workstream-item {
-  grid-template-columns: 12px 42px minmax(0, 1fr);
+  grid-template-columns: 12px minmax(0, 1fr) minmax(0, 1fr);
   gap: 11px;
   min-height: 28px;
   color: #64748b;
@@ -916,6 +921,10 @@ input[type="search"] {
 .gantt-workstream-item strong {
   color: #111827;
   font-size: 11px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .gantt-workstream-item.is-subtask strong {
@@ -923,6 +932,7 @@ input[type="search"] {
 }
 
 .gantt-workstream-item span:last-child {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1498,6 +1508,27 @@ input[type="search"] {
   background: rgba(225, 246, 231, 0.9);
 }
 
+.attention-status-on-hold,
+.records-status-on-hold {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.attention-status-completed,
+.records-status-completed {
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.attention-status-cancelled,
+.records-status-cancelled {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.24);
+  background: rgba(243, 244, 246, 0.92);
+}
+
 .attention-status-inactive,
 .records-status-inactive {
   color: #b42318;
@@ -1515,6 +1546,7 @@ input[type="search"] {
 .records-status-badge,
 .attention-event-badge,
 .records-event-badge,
+.records-project-type-badge,
 .records-document-type-badge,
 .records-document-status-badge,
 .records-direction-badge,
@@ -1537,6 +1569,7 @@ input[type="search"] {
 
 .records-status-badge,
 .records-event-badge,
+.records-project-type-badge,
 .records-document-type-badge,
 .records-document-status-badge,
 .records-direction-badge,
@@ -1591,6 +1624,13 @@ input[type="search"] {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
+}
+
+.attention-status-prospect,
+.records-status-prospect {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
 }
 
 .attention-event-meeting,
@@ -1704,6 +1744,54 @@ input[type="search"] {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
+}
+
+.records-project-type-development {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-project-type-marketing {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-project-type-acquisition {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-project-type-leasing {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-project-type-infra {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-project-type-capitalraise {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-project-type-logistics {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-project-type-internal {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
 }
 
 .records-direction-receivable {
@@ -4631,6 +4719,27 @@ input[type="search"] {
   .page-view-gantt .gantt-arrow-group {
     height: 34px;
     grid-template-columns: 32px 32px;
+  }
+
+  .page-view-gantt .gantt-workstreams {
+    grid-template-rows: 42px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .page-view-gantt .gantt-workstream-section {
+    min-height: 0;
+  }
+
+  .page-view-gantt .gantt-workstream-list {
+    max-height: calc(5 * 28px);
+  }
+
+  .page-view-gantt .gantt-view-all {
+    display: none;
+  }
+
+  .page-view-gantt .gantt-workstream-item {
+    gap: 8px;
   }
 
   .records-toolbar {
