@@ -648,18 +648,9 @@ input[type="search"] {
 .gantt-title-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0;
   flex: 0 0 auto;
   min-height: 56px;
-}
-
-.gantt-menu-icon {
-  width: 18px;
-  height: 18px;
-  color: #4b5563;
-  font-size: 20px;
-  line-height: 18px;
-  margin-top: 3px;
 }
 
 .gantt-title-row h2 {

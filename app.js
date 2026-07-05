@@ -4907,7 +4907,6 @@ function renderGanttChart() {
         <div class="gantt-app-shell">
           <header class="gantt-topbar">
           <div class="gantt-title-row">
-            <span class="gantt-menu-icon">≡</span>
             <h2>Gantt Chart</h2>
           </div>
           <div class="gantt-toolbar-left">
