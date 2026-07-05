@@ -634,7 +634,7 @@ input[type="search"] {
   min-height: calc(100vh - 76px);
   background: var(--bg);
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
-  padding-bottom: 52px;
+  padding: 0 18px 52px;
 }
 
 .gantt-topbar {
@@ -642,7 +642,7 @@ input[type="search"] {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
-  padding: 0 24px 12px;
+  padding: 0 6px 12px;
 }
 
 .gantt-title-row {
@@ -765,7 +765,7 @@ input[type="search"] {
 }
 
 .gantt-topbar .gantt-toolbar-left {
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .gantt-date-input {
@@ -803,7 +803,7 @@ input[type="search"] {
   height: 42px;
   display: flex;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 16px;
   color: #64748b;
   font-size: 11px;
   font-weight: 800;
@@ -815,7 +815,7 @@ input[type="search"] {
   grid-template-rows: 28px;
   grid-auto-rows: minmax(0, auto);
   align-content: start;
-  padding: 8px 12px 12px;
+  padding: 8px 16px 12px;
   min-height: 0;
 }
 
@@ -4534,6 +4534,11 @@ input[type="search"] {
     gap: 10px;
     padding: 0 12px 10px;
     justify-items: start;
+  }
+
+  .page-view-gantt .gantt-app-shell {
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .page-view-gantt .gantt-title-row {
