@@ -1330,6 +1330,7 @@ const state = {
   detailHistory: [],
   recordFilters: {},
   taskExpanded: {},
+  ganttSidebarExpanded: {},
   ganttWeekStart: null,
   ganttScale: "week",
   googleMapsApiKey: "",
@@ -4875,25 +4876,31 @@ function renderGanttChart() {
     ...eventRows.map((item) => renderBar(item, "event")),
   ];
   const visibleRowCount = gridRows.filter(Boolean).length;
-  const sidebarSection = (title, count, rows, overflowText, tableKey = "") => `
-    <section class="gantt-workstream-section" style="--gantt-section-row-count:${Math.max(rows.length, 1)};">
+  const ganttSidebarExpanded = state.ganttSidebarExpanded ?? {};
+  const sidebarSection = (title, count, rows, overflowText, tableKey = "", limit = rows.length) => {
+    const expanded = Boolean(ganttSidebarExpanded[tableKey]);
+    const visibleRows = expanded ? rows : rows.slice(0, limit);
+    const hasOverflow = rows.length > limit;
+
+    return `
+    <section class="gantt-workstream-section" style="--gantt-section-row-count:${Math.max(visibleRows.length, 1)};">
       <div class="gantt-workstream-head">
         <strong>${escapeHtml(title)}</strong>
         <em>${count}</em>
         <span class="gantt-section-more">•••</span>
       </div>
       <div class="gantt-workstream-list">
-        ${rows.map((row, index) => `
+        ${visibleRows.map((row, index) => `
           <div class="gantt-workstream-item${row.depth ? " is-subtask" : ""}" style="${row.depth ? `--gantt-indent:${row.depth};` : ""}">
             <span class="gantt-dot ${row.color ? `gantt-dot-${row.color}` : ""}"></span>
             <strong>${escapeHtml(row.key)}</strong>
             <span>${escapeHtml(row.label)}</span>
           </div>
         `).join("")}
-        ${overflowText ? `<button class="gantt-view-all" type="button" data-gantt-view-all="${escapeHtml(tableKey)}">${escapeHtml(overflowText)}</button>` : ""}
+        ${hasOverflow ? `<button class="gantt-view-all" type="button" data-gantt-view-all="${escapeHtml(tableKey)}">${escapeHtml(expanded ? "Show less" : overflowText)}</button>` : ""}
       </div>
     </section>
-  `;
+  `;};
 
   return `
     <div class="page-view page-view-gantt">
@@ -4925,8 +4932,8 @@ function renderGanttChart() {
           <aside class="gantt-workstreams">
             <div class="gantt-workstream-label">Workstreams</div>
             ${sidebarSection("Projects", projectRows.length, projectRows, "", "projects")}
-            ${sidebarSection("Tasks", taskRows.length, taskRows.slice(0, 5), taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "", "tasks")}
-            ${sidebarSection("Events", eventRows.length, eventRows.slice(0, 6), eventRows.length > 6 ? `View all ${eventRows.length} events` : "", "events")}
+            ${sidebarSection("Tasks", taskRows.length, taskRows, taskRows.length > 5 ? `View all ${taskRows.length} tasks` : "", "tasks", 5)}
+            ${sidebarSection("Events", eventRows.length, eventRows, eventRows.length > 6 ? `View all ${eventRows.length} events` : "", "events", 6)}
           </aside>
           <main class="gantt-timeline">
             <div class="gantt-timeline-days">
@@ -7307,16 +7314,10 @@ function bindEvents() {
         event.stopPropagation();
         const nextTable = ganttViewAllButton.dataset.ganttViewAll;
         if (!nextTable) return;
-        state.activeNav = nextTable;
-        state.activeTable = nextTable;
-        state.search = "";
-        state.detailTableKey = null;
-        state.detailRecordId = null;
-        state.detailTreeOpen = false;
-        clearDetailHistory();
-        syncCurrentViewUrl();
-        renderMeta();
-        renderSidebarNav();
+        state.ganttSidebarExpanded = {
+          ...state.ganttSidebarExpanded,
+          [nextTable]: !state.ganttSidebarExpanded?.[nextTable],
+        };
         renderHeroPanel();
         return;
       }
