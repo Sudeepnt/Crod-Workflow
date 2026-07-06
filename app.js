@@ -1332,6 +1332,7 @@ const state = {
   taskExpanded: {},
   ganttSidebarExpanded: {},
   ganttWorkstreamsCollapsed: null,
+  ganttVisibleTable: "events",
   ganttWeekStart: null,
   ganttScale: "week",
   googleMapsApiKey: "",
@@ -4339,6 +4340,14 @@ function getGanttScale() {
   return state.ganttScale === "month" ? "month" : "week";
 }
 
+function getGanttVisibleTable() {
+  return ["projects", "tasks", "events"].includes(state.ganttVisibleTable) ? state.ganttVisibleTable : "events";
+}
+
+function setGanttVisibleTable(value) {
+  state.ganttVisibleTable = ["projects", "tasks", "events"].includes(value) ? value : "events";
+}
+
 function setGanttScale(value) {
   state.ganttScale = value === "month" ? "month" : "week";
 }
@@ -4371,9 +4380,11 @@ function getCurrentViewHref() {
   if (activeView === "gantt") {
     url.searchParams.set("gantt", getLocalDateKey(getGanttWeekStart()));
     url.searchParams.set("scale", getGanttScale());
+    url.searchParams.set("gantt_table", getGanttVisibleTable());
   } else {
     url.searchParams.delete("gantt");
     url.searchParams.delete("scale");
+    url.searchParams.delete("gantt_table");
   }
 
   if (activeView === "assets") {
@@ -4433,6 +4444,7 @@ function getGanttViewHref(startDate) {
   url.searchParams.set("view", "gantt");
   url.searchParams.set("gantt", getLocalDateKey(startDate instanceof Date ? startDate : getDateAtDayStart(startDate) || getGanttWeekStart()));
   url.searchParams.set("scale", getGanttScale());
+  url.searchParams.set("gantt_table", getGanttVisibleTable());
   return `${url.pathname}${url.search}`;
 }
 
@@ -4441,6 +4453,7 @@ function applyUrlState() {
   const view = params.get("view");
   const gantt = params.get("gantt");
   const scale = params.get("scale");
+  const ganttTable = params.get("gantt_table");
   const assetsView = params.get("assets_view");
 
   state.activeNav = isKnownSidebarView(view) ? view : "dashboard";
@@ -4459,6 +4472,7 @@ function applyUrlState() {
   if (scale) {
     setGanttScale(scale);
   }
+  setGanttVisibleTable(ganttTable);
 }
 
 function getDaysUntil(dateKey) {
@@ -4857,6 +4871,13 @@ function renderGanttChart() {
         color: "orange",
       };
     });
+  const ganttTableOptions = [
+    { key: "projects", label: "Projects", iconLabel: "Projects", type: "project", rows: projectRows },
+    { key: "tasks", label: "Tasks", iconLabel: "Tasks", type: "task", rows: taskRows },
+    { key: "events", label: "Events", iconLabel: "Events", type: "event", rows: eventRows },
+  ];
+  const activeGanttTable = getGanttVisibleTable();
+  const activeGanttOption = ganttTableOptions.find((option) => option.key === activeGanttTable) ?? ganttTableOptions[2];
   const renderBar = (item, type) => {
     const visibleSpan = getVisibleSpan(item.start, item.end);
     if (!visibleSpan) return "";
@@ -4870,13 +4891,9 @@ function renderGanttChart() {
       </button>
     `;
   };
-  const gridRows = [
-    ...projectRows.map((item) => renderBar(item, "project")),
-    ...taskRows.map((item) => renderBar(item, "task")),
-    ...eventRows.map((item) => renderBar(item, "event")),
-  ];
-  const visibleRowCount = gridRows.filter(Boolean).length;
+  const gridRows = activeGanttOption.rows.map((item) => renderBar(item, activeGanttOption.type));
   const ganttWorkstreamsCollapsed = state.ganttWorkstreamsCollapsed ?? state.isMobileViewport;
+  const ganttWorkstreamWidth = ganttWorkstreamsCollapsed ? 60 : (state.isMobileViewport ? 248 : 360);
   const sidebarSection = (title, count, rows) => {
     return `
     <section class="gantt-workstream-section" style="--gantt-section-row-count:${Math.max(rows.length, 1)};">
@@ -4918,19 +4935,34 @@ function renderGanttChart() {
             </label>
           </div>
           <div class="gantt-stat-strip">
+            <div><strong>${projectRows.length}</strong><span>Projects</span></div>
             <div><strong>${taskRows.length}</strong><span>Tasks</span></div>
             <div><strong>${eventRows.length}</strong><span>Events</span></div>
           </div>
           </header>
-        <div class="gantt-board" style="${columnLineStyle(gridRows.length)}; --gantt-workstream-width:${ganttWorkstreamsCollapsed ? 56 : 320}px;">
+        <div class="gantt-board" style="${columnLineStyle(gridRows.length)}; --gantt-workstream-width:${ganttWorkstreamWidth}px;">
           <aside class="gantt-workstreams${ganttWorkstreamsCollapsed ? " is-collapsed" : ""}">
             <div class="gantt-workstream-label">
-              <span>Workstreams</span>
+              <div class="gantt-workstream-heading">
+                <span>Workstreams</span>
+                <div class="gantt-workstream-filters" role="group" aria-label="Choose visible gantt records">
+                  ${ganttTableOptions.map((option) => `
+                    <button
+                      class="gantt-workstream-filter${option.key === activeGanttOption.key ? " is-active" : ""}"
+                      type="button"
+                      data-gantt-filter="${escapeHtml(option.key)}"
+                      aria-label="Show ${escapeHtml(option.iconLabel)}"
+                      aria-pressed="${option.key === activeGanttOption.key}"
+                      title="${escapeHtml(option.iconLabel)}"
+                    >
+                      ${getTableIcon(option.key)}
+                    </button>
+                  `).join("")}
+                </div>
+              </div>
               <button class="gantt-workstreams-toggle" type="button" data-gantt-workstreams-toggle aria-expanded="${!ganttWorkstreamsCollapsed}" aria-label="${ganttWorkstreamsCollapsed ? "Expand workstreams" : "Minimize workstreams"}">${ganttWorkstreamsCollapsed ? "›" : "‹"}</button>
             </div>
-            ${sidebarSection("Projects", projectRows.length, projectRows)}
-            ${sidebarSection("Tasks", taskRows.length, taskRows)}
-            ${sidebarSection("Events", eventRows.length, eventRows)}
+            ${sidebarSection(activeGanttOption.label, activeGanttOption.rows.length, activeGanttOption.rows)}
           </aside>
           <main class="gantt-timeline">
             <div class="gantt-timeline-days">
@@ -7331,6 +7363,16 @@ function bindEvents() {
         event.stopPropagation();
         const currentCollapsed = state.ganttWorkstreamsCollapsed ?? state.isMobileViewport;
         state.ganttWorkstreamsCollapsed = !currentCollapsed;
+        renderHeroPanel();
+        return;
+      }
+
+      const ganttFilterButton = event.target.closest("[data-gantt-filter]");
+      if (ganttFilterButton instanceof HTMLElement) {
+        event.stopPropagation();
+        const nextTable = ganttFilterButton.dataset.ganttFilter;
+        setGanttVisibleTable(nextTable);
+        syncCurrentViewUrl();
         renderHeroPanel();
         return;
       }
