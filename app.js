@@ -169,6 +169,9 @@ const tables = [
 const SUPABASE_URL = "https://enozxcriirsytgrjcxbt.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tULBf6UJrmdpNRdeb5SQmw_VOAoUhpr";
 const APP_TIMEZONE = "Asia/Kolkata";
+const FORM_CONFIG_TABLE = "app_form_configs";
+const FORM_CONFIG_KEY = "default";
+const FORM_CONFIG_VERSION = 1;
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
 const APP_SESSION_KEY = "atit.appAuthenticated";
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
@@ -1335,6 +1338,10 @@ const state = {
   ganttVisibleTable: "events",
   ganttWeekStart: null,
   ganttScale: "week",
+  adminView: "users",
+  formBuilderTableKey: "ventures",
+  formBuilderStatus: "",
+  formBuilderError: "",
   googleMapsApiKey: "",
   isAuthenticated: false,
   isMobileViewport: false,
@@ -1346,13 +1353,10 @@ let confirmResolve = null;
 let remoteRefreshTimeoutId = null;
 let remoteRefreshPromise = null;
 let remoteRealtimeChannel = null;
-let remoteRefreshIntervalId = null;
 const MOBILE_BREAKPOINT = 820;
 const GOOGLE_MAPS_API_KEY_STORAGE_KEY = "atit.googleMapsApiKey";
-const LOCAL_TABLE_CACHE_STORAGE_KEY = "atit.localTableCache";
 const APP_SESSION_USER_KEY = "atit.appUserId";
 const REMOTE_REFRESH_DEBOUNCE_MS = 350;
-const REMOTE_REFRESH_INTERVAL_MS = 5000;
 const googleMapsRuntime = {
   loaderPromise: null,
   map: null,
@@ -1425,6 +1429,147 @@ const durationUnits = [
   { value: "h", label: "Hours" },
   { value: "d", label: "Days" },
 ];
+const editableFieldTypes = ["text", "email", "tel", "number", "date", "datetime-local", "select", "textarea", "checkbox"];
+const defaultFormConfig = createDefaultFormConfig();
+let activeFormConfig = cloneJson(defaultFormConfig);
+
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function normalizeOptionList(options = []) {
+  return Array.from(new Set(
+    (Array.isArray(options) ? options : [])
+      .map((option) => String(option ?? "").trim())
+      .filter(Boolean),
+  ));
+}
+
+function createDefaultFormConfig() {
+  return {
+    version: FORM_CONFIG_VERSION,
+    tables: tables.map((table) => ({
+      key: table.key,
+      title: table.title,
+      singular: table.singular,
+      summary: table.summary,
+      fields: table.fields.map((field) => ({
+        ...cloneJson(field),
+        enabled: field.enabled !== false,
+        options: Array.isArray(field.options) ? [...field.options] : undefined,
+      })),
+    })),
+  };
+}
+
+function mergeFieldConfig(defaultField, overrideField = {}) {
+  const type = editableFieldTypes.includes(overrideField.type) ? overrideField.type : defaultField.type;
+  const hasOptions = Array.isArray(overrideField.options) || Array.isArray(defaultField.options) || type === "select";
+  const merged = {
+    ...cloneJson(defaultField),
+    label: String(overrideField.label ?? defaultField.label ?? defaultField.name).trim() || defaultField.name,
+    type,
+    required: Boolean(overrideField.required ?? defaultField.required ?? false),
+    enabled: overrideField.enabled !== false,
+  };
+
+  ["placeholder", "value", "step", "inputmode", "data_format"].forEach((key) => {
+    const value = overrideField[key] ?? defaultField[key];
+    if (value != null && value !== "") merged[key] = value;
+    else delete merged[key];
+  });
+
+  if (hasOptions) merged.options = normalizeOptionList(overrideField.options ?? defaultField.options ?? []);
+  else delete merged.options;
+
+  return merged;
+}
+
+function mergeFormConfig(config = {}) {
+  const defaults = cloneJson(defaultFormConfig);
+  const overrideTables = new Map((Array.isArray(config?.tables) ? config.tables : []).map((table) => [table.key, table]));
+
+  defaults.tables = defaults.tables.map((table) => {
+    const overrideTable = overrideTables.get(table.key) ?? {};
+    const overrideFields = new Map((Array.isArray(overrideTable.fields) ? overrideTable.fields : []).map((field) => [field.name, field]));
+    return {
+      ...table,
+      title: String(overrideTable.title ?? table.title).trim() || table.title,
+      singular: String(overrideTable.singular ?? table.singular).trim() || table.singular,
+      summary: String(overrideTable.summary ?? table.summary ?? "").trim(),
+      fields: table.fields.map((field) => mergeFieldConfig(field, overrideFields.get(field.name))),
+    };
+  });
+
+  return { version: FORM_CONFIG_VERSION, tables: defaults.tables };
+}
+
+function applyFormConfig(config = activeFormConfig) {
+  activeFormConfig = mergeFormConfig(config);
+  const configTables = new Map(activeFormConfig.tables.map((table) => [table.key, table]));
+
+  tables.forEach((table) => {
+    const tableConfig = configTables.get(table.key);
+    if (!tableConfig) return;
+    table.title = tableConfig.title;
+    table.singular = tableConfig.singular;
+    table.summary = tableConfig.summary;
+    table.fields = tableConfig.fields.map((field) => cloneJson(field));
+  });
+}
+
+function getVisibleFields(table) {
+  return (table.fields ?? []).filter((field) => field.enabled !== false);
+}
+
+async function loadFormConfigFromSupabase() {
+  applyFormConfig(activeFormConfig);
+  if (!supabaseClient) return false;
+
+  const { data: rows, error } = await supabaseClient
+    .from(FORM_CONFIG_TABLE)
+    .select("config")
+    .eq("key", FORM_CONFIG_KEY)
+    .limit(1);
+
+  if (error) throw error;
+  const remoteConfig = Array.isArray(rows) ? rows[0]?.config : null;
+  applyFormConfig(remoteConfig ?? defaultFormConfig);
+  return Boolean(remoteConfig);
+}
+
+async function saveFormConfigToSupabase(config = activeFormConfig) {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. Form settings were not saved.");
+  }
+
+  const mergedConfig = mergeFormConfig(config);
+  const { data: rows, error } = await supabaseClient
+    .from(FORM_CONFIG_TABLE)
+    .upsert({
+      key: FORM_CONFIG_KEY,
+      config: mergedConfig,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "key" })
+    .select("key")
+    .limit(1);
+
+  if (error) throw error;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error("Supabase did not return the saved form settings.");
+  }
+
+  applyFormConfig(mergedConfig);
+  return true;
+}
+
+function getFormConfigTable(tableKey) {
+  return activeFormConfig.tables.find((table) => table.key === tableKey) ?? null;
+}
+
+function getFormConfigField(tableKey, fieldName) {
+  return getFormConfigTable(tableKey)?.fields.find((field) => field.name === fieldName) ?? null;
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -1673,30 +1818,6 @@ function getVentureLinkedPeople(ventureRow) {
   return Array.from(people.values());
 }
 
-function ensurePersonRecord(name, venture = "") {
-  const normalizedName = String(name ?? "").trim();
-  if (!normalizedName) return null;
-  const existing = data.people.find((item) => String(item.name ?? "").trim() === normalizedName) ?? null;
-  if (existing) return existing;
-
-  const record = {
-    id: `ppl_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    name: normalizedName,
-    type: "Employee",
-    email: "",
-    phone: "",
-    venture: String(venture ?? "").trim(),
-    role_title: "",
-    access_level: "Employee",
-    status: "Active",
-  };
-  data.people.unshift(record);
-  syncRecordToSupabase("people", record).catch((error) => {
-    console.error("Failed to sync person to Supabase", error);
-  });
-  return record;
-}
-
 function formatLocalDateForInput(date = new Date()) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -1847,15 +1968,13 @@ async function hydrateDataFromSupabase() {
   hydrateDocumentRelationFieldsFromLinks();
 }
 
-function cloneRows(rows) {
-  if (typeof structuredClone === "function") {
-    return structuredClone(rows);
-  }
-  return JSON.parse(JSON.stringify(rows));
-}
-
 async function syncRecordToSupabase(tableKey, record, { mode = "upsert" } = {}) {
-  if (!REMOTE_TABLE_KEYS.has(tableKey) || !supabaseClient) return;
+  if (!REMOTE_TABLE_KEYS.has(tableKey)) {
+    throw new Error(`Supabase table is not configured for ${tableKey}.`);
+  }
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. The record was not saved.");
+  }
   const payload = mapRecordToSupabase(tableKey, record);
   let query = null;
 
@@ -1892,13 +2011,25 @@ async function syncRecordToSupabase(tableKey, record, { mode = "upsert" } = {}) 
     throw error;
   }
   const syncedRow = Array.isArray(rows) ? rows[0] ?? null : rows ?? null;
-  return syncedRow ? mapRecordFromSupabase(tableKey, syncedRow) : null;
+  if (!syncedRow) {
+    throw new Error("Supabase did not return the saved record. The UI was not updated.");
+  }
+  return mapRecordFromSupabase(tableKey, syncedRow);
 }
 
 async function removeRecordFromSupabase(tableKey, recordId) {
-  if (!REMOTE_TABLE_KEYS.has(tableKey) || !supabaseClient) return;
-  const { error } = await supabaseClient.from(tableKey).delete().eq("id", recordId);
+  if (!REMOTE_TABLE_KEYS.has(tableKey)) {
+    throw new Error(`Supabase table is not configured for ${tableKey}.`);
+  }
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. The record was not deleted.");
+  }
+  const { data: rows, error } = await supabaseClient.from(tableKey).delete().eq("id", recordId).select("id");
   if (error) throw error;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error("Supabase did not delete the record. The UI was not updated.");
+  }
+  return rows;
 }
 
 async function refreshRemoteData({ syncHierarchy = false, render = true } = {}) {
@@ -1906,9 +2037,7 @@ async function refreshRemoteData({ syncHierarchy = false, render = true } = {}) 
   if (!remoteRefreshPromise) {
     remoteRefreshPromise = hydrateDataFromSupabase()
       .then(() => {
-        if (syncHierarchy) normalizeAllHierarchyData({ sync: true });
-        else normalizeAllHierarchyData();
-        persistLocalTableCache();
+        normalizeAllHierarchyData();
         if (render) renderAll();
         return true;
       })
@@ -1929,10 +2058,10 @@ function scheduleRemoteRefresh(options = {}) {
   }, REMOTE_REFRESH_DEBOUNCE_MS);
 }
 
-function setupSupabaseLiveSync() {
+function setupSupabaseRealtime() {
   if (!supabaseClient || remoteRealtimeChannel || typeof supabaseClient.channel !== "function") return;
 
-  let channel = supabaseClient.channel("atit-live-sync");
+  let channel = supabaseClient.channel("atit-realtime");
   tables.forEach((table) => {
     channel = channel.on(
       "postgres_changes",
@@ -1943,19 +2072,27 @@ function setupSupabaseLiveSync() {
     );
   });
 
+  channel = channel.on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: FORM_CONFIG_TABLE },
+    () => {
+      loadFormConfigFromSupabase()
+        .then(() => {
+          renderSidebarNav();
+          renderMeta();
+          renderHeroPanel();
+        })
+        .catch((error) => {
+          console.error("Supabase form settings realtime refresh failed", error);
+        });
+    },
+  );
+
   remoteRealtimeChannel = channel.subscribe((status) => {
     if (status === "CHANNEL_ERROR") {
       console.warn("Supabase realtime subscription failed; falling back to fetch refreshes.");
     }
   });
-}
-
-function setupRemoteRefreshPolling() {
-  if (!supabaseClient || remoteRefreshIntervalId) return;
-  remoteRefreshIntervalId = globalThis.setInterval(() => {
-    if (!state.isAuthenticated || document.visibilityState !== "visible") return;
-    scheduleRemoteRefresh({ syncHierarchy: true, render: true });
-  }, REMOTE_REFRESH_INTERVAL_MS);
 }
 
 function getRecordFilterState(tableKey) {
@@ -2091,40 +2228,13 @@ function persistGoogleMapsApiKey(value) {
   }
 }
 
-function getPersistableTableData() {
-  return Object.fromEntries(
-    tables.map((table) => [table.key, data[table.key] ?? []]),
-  );
-}
-
-function persistLocalTableCache() {
+function clearLegacyWorkflowStorage() {
   try {
-    globalThis.localStorage?.setItem(LOCAL_TABLE_CACHE_STORAGE_KEY, JSON.stringify(getPersistableTableData()));
-  } catch {
-    // Ignore storage failures and keep runtime data only.
-  }
-}
-
-function applyLocalTableCache() {
-  try {
-    const raw = globalThis.localStorage?.getItem(LOCAL_TABLE_CACHE_STORAGE_KEY);
-    if (!raw) return;
-    const parsed = JSON.parse(raw);
-    tables.forEach((table) => {
-      if (Array.isArray(parsed?.[table.key])) {
-        if (table.key === "assets") {
-          const merged = new Map((data[table.key] ?? []).map((row) => [String(row.id ?? ""), row]));
-          parsed[table.key].forEach((row) => {
-            merged.set(String(row.id ?? ""), row);
-          });
-          data[table.key] = Array.from(merged.values());
-        } else {
-          data[table.key] = parsed[table.key];
-        }
-      }
+    ["atit.localTableCache", "atit.localPendingUpserts", "atit.localPendingDeletes"].forEach((key) => {
+      globalThis.localStorage?.removeItem(key);
     });
   } catch {
-    // Ignore malformed cache and continue with runtime data.
+    // Ignore storage failures; workflow records are never read from localStorage.
   }
 }
 
@@ -3797,9 +3907,10 @@ function renderRecordDetail(table, record) {
     ? "Subtasks"
     : table.title;
   const documentBody = table.key === "documents" ? String(record?.body ?? "").trim() : "";
+  const visibleFields = getVisibleFields(table);
   const detailFields = table.key === "documents"
-    ? table.fields.filter((field) => field.name !== "body")
-    : table.fields;
+    ? visibleFields.filter((field) => field.name !== "body")
+    : visibleFields;
   const renderDetailFieldValue = (field, display) => {
     if (table.key === "documents" && field.name === "file_ref") {
       const visitUrl = getDocumentVisitUrl(record);
@@ -3994,7 +4105,15 @@ function renderMeta() {
     : state.activeNav === "admin"
       ? ` (${userAccounts.length})`
       : "";
-  el.mobileNavTitle.textContent = `${activeItem?.label ?? "Dashboard"}${countSuffix}`;
+  el.mobileNavTitle.textContent = `${getSidebarItemLabel(activeItem) ?? "Dashboard"}${countSuffix}`;
+}
+
+function getSidebarItemLabel(item) {
+  if (!item) return "";
+  if (item.kind === "table") {
+    return tables.find((table) => table.key === item.key)?.title ?? item.label;
+  }
+  return item.label;
 }
 
 function getSidebarToggleIcon() {
@@ -4068,13 +4187,14 @@ function syncViewportState() {
 
 function renderSidebarNav() {
   el.sidebarNav.innerHTML = sidebarItems.map((item) => {
+    const label = getSidebarItemLabel(item);
     const count = item.kind === "table" ? `<span class="sidebar-nav-count">${data[item.key].length}</span>` : "";
     const active = state.activeNav === item.key ? "active" : "";
     const dividerClass = ["dashboard", "transactions"].includes(item.key) ? " sidebar-nav-item-divider" : "";
     return `
-      <button class="sidebar-nav-item ${active}${dividerClass}" type="button" data-sidebar-key="${item.key}" data-sidebar-kind="${item.kind}" data-sidebar-label="${escapeHtml(item.label)}" aria-label="${escapeHtml(item.label)}" title="${escapeHtml(item.label)}">
+      <button class="sidebar-nav-item ${active}${dividerClass}" type="button" data-sidebar-key="${item.key}" data-sidebar-kind="${item.kind}" data-sidebar-label="${escapeHtml(label)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
         <span class="sidebar-nav-icon" aria-hidden="true">${getTableIcon(item.key)}</span>
-        <span class="sidebar-nav-label">${escapeHtml(item.label)}</span>
+        <span class="sidebar-nav-label">${escapeHtml(label)}</span>
         ${count}
       </button>
     `;
@@ -6178,6 +6298,31 @@ function renderDashboard() {
 }
 
 function renderAdminWorkspace() {
+  return `
+    <div class="admin-workspace">
+      ${renderAdminTabs()}
+      ${state.adminView === "forms" ? renderAdminFormBuilder() : renderAdminUsersWorkspace()}
+    </div>
+  `;
+}
+
+function renderAdminTabs() {
+  const views = [
+    { key: "users", label: "Users" },
+    { key: "forms", label: "Form Builder" },
+  ];
+  return `
+    <div class="admin-tabs" role="tablist" aria-label="Admin views">
+      ${views.map((view) => `
+        <button class="admin-tab ${state.adminView === view.key ? "is-active" : ""}" type="button" data-admin-view="${view.key}" role="tab" aria-selected="${state.adminView === view.key ? "true" : "false"}">
+          ${escapeHtml(view.label)}
+        </button>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderAdminUsersWorkspace() {
   const query = state.search.trim().toLowerCase();
   const filteredUsers = userAccounts.filter((user) => {
     if (!query) return true;
@@ -6187,10 +6332,10 @@ function renderAdminWorkspace() {
   const currentCount = userAccounts.length;
 
   return `
-    <div class="admin-workspace">
+    <div class="admin-view-shell">
       <div class="records-toolbar admin-workspace-head">
         <div class="admin-workspace-title">
-          <h2>Admin</h2>
+          <h2>Users</h2>
           <span>${currentCount} ${currentCount === 1 ? "user" : "users"}</span>
         </div>
         <div class="records-toolbar-search">
@@ -6261,7 +6406,178 @@ function renderAdminWorkspace() {
   `;
 }
 
+function renderFormBuilderStatus() {
+  const message = state.formBuilderError || state.formBuilderStatus;
+  if (!message) return "";
+  return `<p id="form-builder-status" class="form-builder-status ${state.formBuilderError ? "is-error" : "is-success"}">${escapeHtml(message)}</p>`;
+}
+
+function renderFormBuilderOptions(tableKey, field) {
+  const relation = getRelationConfig(field.name);
+  if (relation) {
+    const source = relation.table
+      ? getTableByKey(relation.table)?.title ?? relation.table
+      : Array.isArray(relation.tables)
+        ? relation.tables.map((key) => getTableByKey(key)?.title ?? key).join(", ")
+        : "linked records";
+    return `
+      <div class="form-builder-options-note">
+        Options come from ${escapeHtml(source)} records.
+      </div>
+    `;
+  }
+
+  const canEditOptions = field.type === "select" || Array.isArray(field.options);
+  if (!canEditOptions) {
+    return `<div class="form-builder-options-note">No fixed options for this field type.</div>`;
+  }
+
+  const options = Array.isArray(field.options) ? field.options : [];
+  return `
+    <div class="form-builder-options">
+      <div class="form-builder-options-head">
+        <span>Options</span>
+        <button class="form-builder-small-button" type="button" data-option-add data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}">+ Add option</button>
+      </div>
+      <div class="form-builder-option-list">
+        ${options.map((option, index) => `
+          <div class="form-builder-option-row">
+            <input type="text" value="${escapeHtml(option)}" data-option-input data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" data-option-index="${index}" />
+            <button class="form-builder-icon-button" type="button" data-option-delete data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" data-option-index="${index}" aria-label="Delete option">×</button>
+          </div>
+        `).join("") || `<div class="form-builder-options-note">No options yet.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function renderFormBuilderField(tableKey, field) {
+  const enabled = field.enabled !== false;
+  return `
+    <details class="form-builder-field ${enabled ? "" : "is-disabled"}" open>
+      <summary>
+        <span class="form-builder-field-main">
+          <label class="form-builder-switch" onclick="event.stopPropagation()">
+            <input type="checkbox" ${enabled ? "checked" : ""} data-field-prop="enabled" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" />
+            <span></span>
+          </label>
+          <span class="form-builder-field-copy">
+            <strong>${escapeHtml(field.label || field.name)}</strong>
+            <small>${escapeHtml(field.name)} · ${escapeHtml(field.type || "text")}</small>
+          </span>
+        </span>
+        <span class="form-builder-field-toggle">Edit</span>
+      </summary>
+      <div class="form-builder-field-body">
+        <div class="form-builder-grid">
+          <label>
+            <span>Field label</span>
+            <input type="text" value="${escapeHtml(field.label ?? "")}" data-field-prop="label" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" />
+          </label>
+          <label>
+            <span>Field type</span>
+            <select data-field-prop="type" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}">
+              ${editableFieldTypes.map((type) => `<option value="${escapeHtml(type)}" ${field.type === type ? "selected" : ""}>${escapeHtml(type)}</option>`).join("")}
+            </select>
+          </label>
+          <label>
+            <span>Placeholder</span>
+            <input type="text" value="${escapeHtml(field.placeholder ?? "")}" data-field-prop="placeholder" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" />
+          </label>
+          <label>
+            <span>Default value</span>
+            <input type="text" value="${escapeHtml(field.value ?? "")}" data-field-prop="value" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" />
+          </label>
+          <label class="form-builder-check">
+            <input type="checkbox" ${field.required ? "checked" : ""} data-field-prop="required" data-table-key="${escapeHtml(tableKey)}" data-field-name="${escapeHtml(field.name)}" />
+            <span>Required</span>
+          </label>
+        </div>
+        ${renderFormBuilderOptions(tableKey, field)}
+      </div>
+    </details>
+  `;
+}
+
+function renderAdminFormBuilder() {
+  const configTables = activeFormConfig.tables;
+  const activeTable = configTables.find((table) => table.key === state.formBuilderTableKey) ?? configTables[0];
+  if (!activeTable) return `<div class="admin-empty-state">No forms configured.</div>`;
+  state.formBuilderTableKey = activeTable.key;
+  const enabledFields = activeTable.fields.filter((field) => field.enabled !== false).length;
+
+  return `
+    <div class="admin-view-shell form-builder">
+      <div class="records-toolbar admin-workspace-head">
+        <div class="admin-workspace-title">
+          <h2>Form Builder</h2>
+          <span>${configTables.length} forms · ${enabledFields}/${activeTable.fields.length} fields enabled in ${escapeHtml(activeTable.title)}</span>
+        </div>
+        <div class="records-toolbar-actions form-builder-actions">
+          <button class="form-builder-secondary-button" type="button" id="reset-form-config-button">Reset defaults</button>
+          <button class="new-record-button form-builder-save-button" type="button" id="save-form-config-button">Save</button>
+        </div>
+      </div>
+      ${renderFormBuilderStatus()}
+      <div class="form-builder-layout">
+        <div class="form-builder-table-list" aria-label="Forms">
+          ${configTables.map((table) => `
+            <button class="form-builder-table-toggle ${table.key === activeTable.key ? "is-active" : ""}" type="button" data-form-builder-table="${escapeHtml(table.key)}">
+              <span>${escapeHtml(table.title)}</span>
+              <small>${table.fields.filter((field) => field.enabled !== false).length}/${table.fields.length} fields</small>
+            </button>
+          `).join("")}
+        </div>
+        <div class="form-builder-editor" data-active-form-table="${escapeHtml(activeTable.key)}">
+          <div class="form-builder-card">
+            <div class="form-builder-card-head">
+              <div>
+                <h3>${escapeHtml(activeTable.title)}</h3>
+                <p>${escapeHtml(activeTable.key)}</p>
+              </div>
+            </div>
+            <div class="form-builder-grid">
+              <label>
+                <span>Form title</span>
+                <input type="text" value="${escapeHtml(activeTable.title)}" data-table-prop="title" data-table-key="${escapeHtml(activeTable.key)}" />
+              </label>
+              <label>
+                <span>Singular label</span>
+                <input type="text" value="${escapeHtml(activeTable.singular)}" data-table-prop="singular" data-table-key="${escapeHtml(activeTable.key)}" />
+              </label>
+              <label class="form-builder-wide">
+                <span>Summary</span>
+                <input type="text" value="${escapeHtml(activeTable.summary ?? "")}" data-table-prop="summary" data-table-key="${escapeHtml(activeTable.key)}" />
+              </label>
+            </div>
+          </div>
+          <div class="form-builder-fields">
+            ${activeTable.fields.map((field) => renderFormBuilderField(activeTable.key, field)).join("")}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function bindAdminWorkspaceEvents() {
+  document.querySelectorAll("[data-admin-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextView = button.dataset.adminView;
+      if (!nextView || state.adminView === nextView) return;
+      state.adminView = nextView;
+      state.search = "";
+      state.formBuilderStatus = "";
+      state.formBuilderError = "";
+      renderHeroPanel();
+    });
+  });
+
+  if (state.adminView === "forms") {
+    bindFormBuilderEvents();
+    return;
+  }
+
   document.getElementById("add-user-button")?.addEventListener("click", () => {
     openAdminUserForm();
   });
@@ -6279,6 +6595,127 @@ function bindAdminWorkspaceEvents() {
       if (userAction === "delete") deleteAdminUser(userId);
     });
   });
+}
+
+function updateFormConfigFromInput(input) {
+  const tableKey = input.dataset.tableKey;
+  if (!tableKey) return false;
+  const tableConfig = getFormConfigTable(tableKey);
+  if (!tableConfig) return false;
+
+  if (input.dataset.tableProp) {
+    tableConfig[input.dataset.tableProp] = input.value;
+    return false;
+  }
+
+  const fieldName = input.dataset.fieldName;
+  const fieldProp = input.dataset.fieldProp;
+  const field = fieldName ? getFormConfigField(tableKey, fieldName) : null;
+  if (!field || !fieldProp) return false;
+
+  if (input instanceof HTMLInputElement && input.type === "checkbox") {
+    field[fieldProp] = input.checked;
+  } else {
+    field[fieldProp] = input.value;
+  }
+
+  if (fieldProp === "type" && field.type === "select" && !Array.isArray(field.options)) {
+    field.options = [];
+  }
+
+  return fieldProp === "type" || fieldProp === "enabled";
+}
+
+function updateFormConfigOption(input) {
+  const tableKey = input.dataset.tableKey;
+  const fieldName = input.dataset.fieldName;
+  const optionIndex = Number(input.dataset.optionIndex);
+  const field = fieldName ? getFormConfigField(tableKey, fieldName) : null;
+  if (!field || !Number.isInteger(optionIndex)) return;
+  field.options = Array.isArray(field.options) ? field.options : [];
+  field.options[optionIndex] = input.value;
+}
+
+function bindFormBuilderEvents() {
+  const builder = document.querySelector(".form-builder");
+  if (!builder) return;
+
+  builder.querySelectorAll("[data-form-builder-table]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const tableKey = button.dataset.formBuilderTable;
+      if (!tableKey || tableKey === state.formBuilderTableKey) return;
+      state.formBuilderTableKey = tableKey;
+      state.formBuilderStatus = "";
+      state.formBuilderError = "";
+      renderHeroPanel();
+    });
+  });
+
+  builder.addEventListener("input", (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return;
+    if (event.target.matches("[data-option-input]")) {
+      updateFormConfigOption(event.target);
+      return;
+    }
+    updateFormConfigFromInput(event.target);
+  });
+
+  builder.addEventListener("change", (event) => {
+    if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
+    const shouldRender = updateFormConfigFromInput(event.target);
+    if (shouldRender) renderHeroPanel();
+  });
+
+  builder.querySelectorAll("[data-option-add]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const field = getFormConfigField(button.dataset.tableKey, button.dataset.fieldName);
+      if (!field) return;
+      field.options = Array.isArray(field.options) ? field.options : [];
+      field.options.push("New option");
+      renderHeroPanel();
+    });
+  });
+
+  builder.querySelectorAll("[data-option-delete]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const field = getFormConfigField(button.dataset.tableKey, button.dataset.fieldName);
+      const optionIndex = Number(button.dataset.optionIndex);
+      if (!field || !Array.isArray(field.options) || !Number.isInteger(optionIndex)) return;
+      field.options.splice(optionIndex, 1);
+      renderHeroPanel();
+    });
+  });
+
+  document.getElementById("save-form-config-button")?.addEventListener("click", saveFormBuilderConfig);
+  document.getElementById("reset-form-config-button")?.addEventListener("click", resetFormBuilderConfig);
+}
+
+async function saveFormBuilderConfig() {
+  state.formBuilderStatus = "Saving form settings...";
+  state.formBuilderError = "";
+  renderHeroPanel();
+
+  try {
+    await saveFormConfigToSupabase(activeFormConfig);
+    state.formBuilderStatus = "Form settings saved to Supabase.";
+    state.formBuilderError = "";
+    renderSidebarNav();
+    renderMeta();
+  } catch (error) {
+    console.error("Supabase form settings save failed", error);
+    state.formBuilderStatus = "";
+    state.formBuilderError = `Supabase is not taking form settings: ${error?.message ?? "Unknown error"}`;
+  }
+
+  renderHeroPanel();
+}
+
+async function resetFormBuilderConfig() {
+  const approved = window.confirm("Reset all form labels, toggles, and options to the built-in defaults?");
+  if (!approved) return;
+  activeFormConfig = cloneJson(defaultFormConfig);
+  applyFormConfig(activeFormConfig);
+  await saveFormBuilderConfig();
 }
 
 function renderSearch() {
@@ -6649,9 +7086,11 @@ function openForm(key, recordId = null) {
   state.editingRecordId = record?.id ?? null;
   state.editingUserId = null;
   el.modalTitle.textContent = `${record ? "Edit" : "Add"} ${entityLabel}`;
-  el.modalSubtitle.textContent = `${table.fields.length} fields`;
-  el.form.innerHTML = table.fields.map((field) => renderField(field, record, key)).join("");
+  const visibleFields = getVisibleFields(table);
+  el.modalSubtitle.textContent = `${visibleFields.length} fields`;
+  el.form.innerHTML = visibleFields.map((field) => renderField(field, record, key)).join("");
   el.saveButton.textContent = `${record ? "Save" : "Create"} ${entityLabel}`;
+  setFormMessage("");
   el.modal.classList.add("open");
   syncBodyModalState();
   bindFormattedInputs();
@@ -6672,12 +7111,34 @@ function openAdminUserForm(userId = null) {
   el.modal.classList.add("open");
   syncBodyModalState();
   bindFormattedInputs();
+  setFormMessage("");
   setAdminFormMessage("");
+}
+
+function setFormMessage(message = "") {
+  const messageEl = document.getElementById("form-message");
+  if (messageEl) messageEl.textContent = message;
 }
 
 function setAdminFormMessage(message = "") {
   const messageEl = el.form?.querySelector("#admin-form-message");
   if (messageEl) messageEl.textContent = message;
+}
+
+function setSaveButtonLoading(isLoading, label = "Saving...") {
+  if (!el.saveButton) return;
+  if (isLoading) {
+    el.saveButton.dataset.defaultText = el.saveButton.textContent ?? "Save";
+    el.saveButton.textContent = label;
+    el.saveButton.disabled = true;
+    return;
+  }
+
+  el.saveButton.disabled = false;
+  if (el.saveButton.dataset.defaultText) {
+    el.saveButton.textContent = el.saveButton.dataset.defaultText;
+    delete el.saveButton.dataset.defaultText;
+  }
 }
 
 function syncBodyModalState() {
@@ -6942,7 +7403,7 @@ function normalizeHierarchicalRecord(tableKey, record, currentRecordId = "") {
   return record;
 }
 
-function normalizeAllHierarchyData({ sync = false } = {}) {
+function normalizeAllHierarchyData() {
   const changedRecords = [];
   const hierarchyTables = tables
     .map((table) => table.key)
@@ -6957,23 +7418,14 @@ function normalizeAllHierarchyData({ sync = false } = {}) {
     });
   });
 
-  if (changedRecords.length) {
-    persistLocalTableCache();
-    if (sync) {
-      Promise.allSettled(
-        changedRecords.map(({ tableKey, row }) => syncRecordToSupabase(tableKey, row)),
-      ).catch((error) => {
-        console.error("Background hierarchy repair sync failed", error);
-      });
-    }
-  }
-
   return changedRecords;
 }
 
 function closeForm() {
   el.modal.classList.remove("open");
   syncBodyModalState();
+  setSaveButtonLoading(false);
+  setFormMessage("");
   state.modalMode = "create";
   state.modalEntity = "table";
   state.editingRecordId = null;
@@ -6984,7 +7436,7 @@ function buildRecordFromForm(table) {
   const formData = new FormData(el.formElement);
   const record = {};
 
-  table.fields.forEach((field) => {
+  getVisibleFields(table).forEach((field) => {
     if (field.type === "checkbox") {
       record[field.name] = el.formElement.elements[field.name].checked;
       return;
@@ -7100,6 +7552,26 @@ function validateRecordBeforeSave(table, record) {
   return { valid: true, message: "" };
 }
 
+function applySupabaseRecordToTable(tableKey, record, localRecordId = "") {
+  const rows = data[tableKey] ?? [];
+  const remoteId = String(record?.id ?? "");
+  const localId = String(localRecordId ?? "");
+  let replaced = false;
+
+  data[tableKey] = rows.map((row) => {
+    const rowId = String(row?.id ?? "");
+    if ((remoteId && rowId === remoteId) || (localId && rowId === localId)) {
+      replaced = true;
+      return record;
+    }
+    return row;
+  });
+
+  if (!replaced) {
+    data[tableKey].unshift(record);
+  }
+}
+
 async function saveRecord() {
   const table = tables.find((item) => item.key === state.activeTable);
   if (!table) return;
@@ -7107,10 +7579,9 @@ async function saveRecord() {
   const payload = buildRecordFromForm(table);
   const validation = validateRecordBeforeSave(table, payload);
   if (!validation.valid) {
-    window.alert(validation.message);
+    setFormMessage(validation.message);
     return;
   }
-  const previousRows = cloneRows(data[table.key] ?? []);
   let nextRecord = null;
   const isEdit = state.modalMode === "edit" && state.editingRecordId;
   const normalizedPeopleName = table.key === "people" ? String(payload.name ?? "").trim() : "";
@@ -7122,42 +7593,33 @@ async function saveRecord() {
     const index = data[table.key].findIndex((item) => item.id === state.editingRecordId);
     if (index >= 0) {
       nextRecord = { ...data[table.key][index], ...payload };
-      data[table.key][index] = nextRecord;
     }
   } else if (existingPeopleRow) {
     nextRecord = { ...existingPeopleRow, ...payload };
-    data[table.key] = (data[table.key] ?? []).map((row) => (row.id === existingPeopleRow.id ? nextRecord : row));
   } else {
     nextRecord = {
       id: `${table.key.slice(0, 3)}_${Date.now()}`,
       createdAt: new Date().toISOString(),
       ...payload,
     };
-    data[table.key].unshift(nextRecord);
   }
-
-  normalizeAllHierarchyData();
-  persistLocalTableCache();
-  closeForm();
-  renderAll();
 
   if (!nextRecord) return;
 
+  setFormMessage("");
+  setSaveButtonLoading(true);
   try {
     const syncedRecord = await syncRecordToSupabase(table.key, nextRecord, { mode: isEdit ? "update" : "insert" });
-    if (syncedRecord) {
-      data[table.key] = (data[table.key] ?? []).map((row) => (
-        row.id === syncedRecord.id || row.id === nextRecord.id ? syncedRecord : row
-      ));
-    }
+    applySupabaseRecordToTable(table.key, syncedRecord, nextRecord.id);
+    normalizeAllHierarchyData();
+    closeForm();
+    renderAll();
     await refreshRemoteData({ syncHierarchy: true, render: true });
   } catch (error) {
-    data[table.key] = previousRows;
-    normalizeAllHierarchyData();
-    persistLocalTableCache();
-    renderAll();
     console.error("Supabase save failed", error);
-    window.alert(`Save failed to sync with Supabase: ${error?.message ?? "Unknown error"}`);
+    setFormMessage(`Supabase is not taking this data: ${error?.message ?? "Unknown error"}`);
+  } finally {
+    setSaveButtonLoading(false);
   }
 }
 
@@ -7232,33 +7694,22 @@ async function deleteRecord(tableKey, recordId) {
   const label = row?.name || row?.title || row?.reference || table.singular || table.title;
   const approved = await openDeleteConfirm(`Delete ${label}?`);
   if (!approved) return false;
-  const previousRows = cloneRows(data[tableKey] ?? []);
-
   const taskIdsToDelete = tableKey === "tasks" ? getTaskDescendantIds(recordId) : [recordId];
-
-  if (tableKey === "tasks") {
-    data.tasks = data.tasks.filter((item) => !taskIdsToDelete.includes(item.id));
-  } else {
-    data[tableKey] = data[tableKey].filter((item) => item.id !== recordId);
-  }
-
-  normalizeAllHierarchyData();
-  persistLocalTableCache();
-  renderAll();
 
   try {
     if (tableKey === "tasks") {
       await Promise.all(taskIdsToDelete.map((id) => removeRecordFromSupabase("tasks", id)));
+      data.tasks = data.tasks.filter((item) => !taskIdsToDelete.includes(item.id));
     } else {
       await removeRecordFromSupabase(tableKey, recordId);
+      data[tableKey] = data[tableKey].filter((item) => item.id !== recordId);
     }
+    normalizeAllHierarchyData();
+    renderAll();
     await refreshRemoteData({ syncHierarchy: true, render: true });
   } catch (error) {
-    data[tableKey] = previousRows;
-    normalizeAllHierarchyData();
-    persistLocalTableCache();
-    renderAll();
-    window.alert(`Delete failed to sync with Supabase: ${error?.message ?? "Unknown error"}`);
+    console.error("Supabase delete failed", error);
+    window.alert(`Supabase is not taking this delete: ${error?.message ?? "Unknown error"}`);
     return false;
   }
   return true;
@@ -7531,19 +7982,26 @@ async function init() {
   if (!validation.valid) {
     console.error(`Duplicate passwords found for: ${validation.users.join(", ")} (${validation.password})`);
   }
+  try {
+    await loadFormConfigFromSupabase();
+  } catch (error) {
+    console.error("Supabase form settings load failed", error);
+    if (state.isAuthenticated) {
+      window.alert(`Supabase form settings load failed: ${error?.message ?? "Unknown error"}`);
+    }
+  }
   if (state.isAuthenticated) showAppShell();
   else renderLoginScreen("");
-  applyLocalTableCache();
+  clearLegacyWorkflowStorage();
   normalizeAllHierarchyData();
   renderAll();
-  setupSupabaseLiveSync();
-  setupRemoteRefreshPolling();
+  setupSupabaseRealtime();
   refreshRemoteData({ syncHierarchy: true, render: true })
-    .then(() => {
-      persistLocalTableCache();
-    })
     .catch((error) => {
-      console.error("Falling back to local seed data", error);
+      console.error("Supabase data load failed", error);
+      if (state.isAuthenticated) {
+        window.alert(`Supabase data load failed: ${error?.message ?? "Unknown error"}`);
+      }
     });
 }
 
