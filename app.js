@@ -1536,6 +1536,7 @@ const durationUnits = [
   { value: "d", label: "Days" },
 ];
 const editableFieldTypes = ["text", "email", "tel", "number", "date", "datetime-local", "select", "textarea", "checkbox"];
+const inlinePrimaryContactFieldPrefix = "inline_primary_contact_";
 const defaultFormConfig = createDefaultFormConfig();
 let activeFormConfig = cloneJson(defaultFormConfig);
 
@@ -6998,6 +6999,70 @@ function renderDurationField(field, record = null) {
   `;
 }
 
+function renderInlinePrimaryContactPersonFields() {
+  const peopleTable = getTableByKey("people");
+  if (!peopleTable) return "";
+
+  const inlineFields = getVisibleFields(peopleTable).filter((field) => field.name !== "venture");
+  return `
+    <div class="inline-primary-contact-fields is-hidden" data-inline-primary-contact-fields>
+      <div class="inline-primary-contact-head">
+        <strong>Add person</strong>
+        <span>This creates a normal People record for this venture.</span>
+      </div>
+      <div class="inline-primary-contact-grid">
+        ${inlineFields.map((field) => {
+          const inputName = `${inlinePrimaryContactFieldPrefix}${field.name}`;
+          const label = `${escapeHtml(field.label)}${field.required ? " *" : ""}`;
+          const placeholder = field.placeholder ? `placeholder="${escapeHtml(field.placeholder)}"` : "";
+          const step = field.step ? `step="${escapeHtml(field.step)}"` : "";
+          const inputMode = field.inputmode ? `inputmode="${escapeHtml(field.inputmode)}"` : "";
+          const dataFormat = field.data_format ? `data-format="${escapeHtml(field.data_format)}"` : "";
+
+          if (field.type === "textarea") {
+            return `
+              <label class="form-field">
+                <span>${label}</span>
+                <textarea name="${escapeHtml(inputName)}" rows="4" ${placeholder}></textarea>
+              </label>
+            `;
+          }
+
+          if (field.type === "select") {
+            const options = field.options ?? [];
+            return `
+              <label class="form-field">
+                <span>${label}</span>
+                <select name="${escapeHtml(inputName)}">
+                  <option value="">Select</option>
+                  ${options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("")}
+                </select>
+              </label>
+            `;
+          }
+
+          if (field.type === "checkbox") {
+            return `
+              <label class="form-field checkbox-field">
+                <input name="${escapeHtml(inputName)}" type="checkbox" />
+                <span>${label}</span>
+              </label>
+            `;
+          }
+
+          return `
+            <label class="form-field">
+              <span>${label}</span>
+              <input name="${escapeHtml(inputName)}" type="${escapeHtml(field.type)}" ${placeholder} ${step} ${inputMode} ${dataFormat} />
+            </label>
+          `;
+        }).join("")}
+      </div>
+      <small class="form-hint">The venture name above will be used automatically for this person.</small>
+    </div>
+  `;
+}
+
 function renderField(field, record = null, currentTableKey = "") {
   const required = field.required ? "required" : "";
   const defaultValue = field.value ?? (
@@ -7058,6 +7123,22 @@ function renderField(field, record = null, currentTableKey = "") {
             </div>
           </details>
         </label>
+      `;
+    }
+
+    if (currentTableKey === "ventures" && field.name === "primary_contact") {
+      return `
+        <div class="form-field primary-contact-field">
+          <span>${label}</span>
+          <div class="inline-primary-contact-row">
+            <select name="${escapeHtml(field.name)}" ${required} data-primary-contact-select>
+              <option value="">Select</option>
+              ${sortedRelationOptions.map((option) => `<option value="${escapeHtml(option.value)}" ${selectedValues.includes(option.value) ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
+            </select>
+            <button class="inline-primary-contact-toggle" type="button" data-inline-primary-contact-toggle aria-label="Add person" title="Add person">+</button>
+          </div>
+          ${renderInlinePrimaryContactPersonFields()}
+        </div>
       `;
     }
 
@@ -7237,6 +7318,7 @@ function openForm(key, recordId = null) {
   bindFormattedInputs();
   bindOwnershipRepeater(key);
   bindHierarchyFilters(record);
+  bindInlinePrimaryContactComposer();
 }
 
 function openAdminUserForm(userId = null) {
@@ -7487,6 +7569,28 @@ function bindFormattedInputs() {
   });
 }
 
+function bindInlinePrimaryContactComposer() {
+  const toggleButton = el.formElement?.querySelector("[data-inline-primary-contact-toggle]");
+  const inlineFields = el.formElement?.querySelector("[data-inline-primary-contact-fields]");
+  const primaryContactSelect = el.formElement?.querySelector("[data-primary-contact-select]");
+  if (!(toggleButton instanceof HTMLButtonElement) || !(inlineFields instanceof HTMLElement)) return;
+
+  const syncInlineState = (isOpen) => {
+    inlineFields.classList.toggle("is-hidden", !isOpen);
+    toggleButton.classList.toggle("is-active", isOpen);
+    toggleButton.setAttribute("aria-pressed", isOpen ? "true" : "false");
+    if (primaryContactSelect instanceof HTMLSelectElement) {
+      primaryContactSelect.disabled = isOpen;
+      if (isOpen) primaryContactSelect.value = "";
+    }
+  };
+
+  syncInlineState(false);
+  toggleButton.addEventListener("click", () => {
+    syncInlineState(inlineFields.classList.contains("is-hidden"));
+  });
+}
+
 function normalizeHierarchicalRecord(tableKey, record, currentRecordId = "") {
   if (tableKey === "tasks") {
     const parentTaskTitle = String(record.parent_task ?? "").trim();
@@ -7571,6 +7675,46 @@ function closeForm() {
   state.modalEntity = "table";
   state.editingRecordId = null;
   state.editingUserId = null;
+}
+
+function buildInlinePrimaryContactPersonDraft() {
+  const inlineFields = el.formElement?.querySelector("[data-inline-primary-contact-fields]");
+  if (!(inlineFields instanceof HTMLElement) || inlineFields.classList.contains("is-hidden")) return { person: null, hasValues: false };
+
+  const peopleTable = getTableByKey("people");
+  if (!peopleTable) return { person: null, hasValues: false };
+
+  const formData = new FormData(el.formElement);
+  const person = {};
+  let hasValues = false;
+
+  getVisibleFields(peopleTable)
+    .filter((field) => field.name !== "venture")
+    .forEach((field) => {
+      const inputName = `${inlinePrimaryContactFieldPrefix}${field.name}`;
+
+      if (field.type === "checkbox") {
+        const checkbox = el.formElement.elements[inputName];
+        person[field.name] = checkbox?.checked ?? false;
+        hasValues = hasValues || person[field.name];
+        return;
+      }
+
+      const rawValue = String(formData.get(inputName) ?? "").trim();
+      person[field.name] = rawValue;
+      if (rawValue) hasValues = true;
+    });
+
+  if (!hasValues) return { person: null, hasValues: false };
+
+  const missingRequired = getVisibleFields(peopleTable)
+    .filter((field) => field.name !== "venture" && field.required)
+    .find((field) => !String(person[field.name] ?? "").trim());
+  if (missingRequired) {
+    return { error: `${missingRequired.label} is required for the new primary contact.`, person: null, hasValues: true };
+  }
+
+  return { person, hasValues: true };
 }
 
 function buildRecordFromForm(table) {
@@ -7718,6 +7862,14 @@ async function saveRecord() {
   if (!table) return;
 
   const payload = buildRecordFromForm(table);
+  const inlinePrimaryContactDraft = table.key === "ventures" ? buildInlinePrimaryContactPersonDraft() : { person: null, hasValues: false };
+  if (inlinePrimaryContactDraft?.error) {
+    setFormMessage(inlinePrimaryContactDraft.error);
+    return;
+  }
+  if (table.key === "ventures" && inlinePrimaryContactDraft.person) {
+    payload.primary_contact = "";
+  }
   const validation = validateRecordBeforeSave(table, payload);
   if (!validation.valid) {
     setFormMessage(validation.message);
@@ -7750,7 +7902,30 @@ async function saveRecord() {
   setFormMessage("");
   setSaveButtonLoading(true);
   try {
-    const syncedRecord = await syncRecordToSupabase(table.key, nextRecord, { mode: isEdit ? "update" : "insert" });
+    let syncedRecord = await syncRecordToSupabase(table.key, nextRecord, { mode: isEdit ? "update" : "insert" });
+    if (table.key === "ventures" && inlinePrimaryContactDraft.person) {
+      const ventureName = String(syncedRecord.name ?? payload.name ?? "").trim();
+      const personDraft = {
+        id: `ppl_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        ...inlinePrimaryContactDraft.person,
+        venture: ventureName,
+      };
+      let syncedPerson = null;
+
+      try {
+        syncedPerson = await syncRecordToSupabase("people", personDraft, { mode: "insert" });
+        applySupabaseRecordToTable("people", syncedPerson, personDraft.id);
+        syncedRecord = await syncRecordToSupabase("ventures", {
+          ...syncedRecord,
+          primary_contact: syncedPerson.name,
+        }, { mode: "update" });
+      } catch (error) {
+        error.ventureSavedRecord = syncedRecord;
+        throw error;
+      }
+    }
+
     applySupabaseRecordToTable(table.key, syncedRecord, nextRecord.id);
     normalizeAllHierarchyData();
     closeForm();
@@ -7758,6 +7933,14 @@ async function saveRecord() {
     await refreshRemoteData({ syncHierarchy: true, render: true });
   } catch (error) {
     console.error("Supabase save failed", error);
+    if (error?.ventureSavedRecord) {
+      applySupabaseRecordToTable("ventures", error.ventureSavedRecord, nextRecord.id);
+      state.modalMode = "edit";
+      state.editingRecordId = error.ventureSavedRecord.id;
+      await refreshRemoteData({ syncHierarchy: true, render: true });
+      setFormMessage(`Venture saved in Supabase, but primary contact failed: ${error?.message ?? "Unknown error"}`);
+      return;
+    }
     setFormMessage(`Supabase is not taking this data: ${error?.message ?? "Unknown error"}`);
   } finally {
     setSaveButtonLoading(false);
