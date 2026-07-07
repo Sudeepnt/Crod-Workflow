@@ -172,6 +172,7 @@ const APP_TIMEZONE = "Asia/Kolkata";
 const FORM_CONFIG_TABLE = "app_form_configs";
 const FORM_CONFIG_KEY = "default";
 const FORM_CONFIG_VERSION = 1;
+const ADMIN_USERS_TABLE = "admin_users";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
 const APP_SESSION_KEY = "atit.appAuthenticated";
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
@@ -1190,44 +1191,7 @@ const data = {
   },
 };
 
-const userAccounts = [
-  {
-    id: "usr_1",
-    name: "ATIT Admin",
-    email: "admin@atit.com",
-    password: "atit1234",
-    role: "Admin",
-    status: "Active",
-    venture_scope: "All ventures",
-    table_access: tables.map((table) => table.key),
-    createdAt: "2026-06-01T09:00:00.000Z",
-    createdBy: "System",
-  },
-  {
-    id: "usr_2",
-    name: "Dev Malik",
-    email: "dev@atit.com",
-    password: "dev1234",
-    role: "Founder",
-    status: "Active",
-    venture_scope: "ATIT",
-    table_access: ["ventures", "people", "projects", "tasks", "documents", "events", "transactions"],
-    createdAt: "2026-06-01T09:01:00.000Z",
-    createdBy: "System",
-  },
-  {
-    id: "usr_3",
-    name: "Meera Sethi",
-    email: "meera@atit.com",
-    password: "meera1234",
-    role: "Employee",
-    status: "Active",
-    venture_scope: "ATIT",
-    table_access: ["projects", "tasks", "documents", "events", "assets"],
-    createdAt: "2026-06-01T09:02:00.000Z",
-    createdBy: "System",
-  },
-];
+let userAccounts = [];
 
 const accessRoles = ["Admin", "Founder", "Partner", "Employee", "Client", "Contractor"];
 
@@ -1307,6 +1271,146 @@ function validateUniquePasswords(excludeUserId = null) {
   return { valid: true, password: "", users: [] };
 }
 
+function mapAdminUserFromSupabase(row = {}) {
+  return {
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    email: String(row.email ?? ""),
+    password: String(row.password ?? ""),
+    role: String(row.role ?? "Employee"),
+    status: String(row.status ?? "Active"),
+    venture_scope: String(row.venture_scope ?? "All ventures"),
+    table_access: Array.isArray(row.table_access) ? row.table_access.map((value) => String(value)) : [],
+    createdAt: row.created_at ?? null,
+    createdBy: String(row.created_by ?? "System"),
+  };
+}
+
+function mapAdminUserToSupabase(user = {}) {
+  return {
+    id: String(user.id ?? "").trim(),
+    name: String(user.name ?? "").trim(),
+    email: String(user.email ?? "").trim(),
+    password: String(user.password ?? "").trim(),
+    role: String(user.role ?? "Employee").trim(),
+    status: String(user.status ?? "Active").trim(),
+    venture_scope: String(user.venture_scope ?? "All ventures").trim(),
+    table_access: Array.isArray(user.table_access) ? user.table_access.map((value) => String(value)) : [],
+    created_at: user.createdAt ?? new Date().toISOString(),
+    created_by: String(user.createdBy ?? "System").trim() || "System",
+  };
+}
+
+async function fetchAdminUsersFromSupabase() {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. Users were not loaded.");
+  }
+
+  const { data: rows, error } = await supabaseClient
+    .from(ADMIN_USERS_TABLE)
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+  userAccounts = (rows ?? []).map(mapAdminUserFromSupabase);
+  if (state.currentUser?.id) {
+    const freshUser = userAccounts.find((user) => user.id === state.currentUser.id) ?? null;
+    if (freshUser) {
+      state.currentUser = freshUser;
+      state.role = freshUser.role;
+    }
+  }
+  return userAccounts;
+}
+
+function reconcileAuthenticatedUserAfterSupabaseRefresh() {
+  if (!state.isAuthenticated || !state.currentUser?.id) return true;
+  const freshUser = userAccounts.find((user) => user.id === state.currentUser.id) ?? null;
+  if (freshUser) {
+    state.currentUser = freshUser;
+    state.role = freshUser.role;
+    setStoredAuthUser(freshUser);
+    return true;
+  }
+
+  state.currentUser = null;
+  state.isAuthenticated = false;
+  setStoredAuthState(false);
+  setStoredAuthUser(null);
+  return false;
+}
+
+async function refreshAdminUsersFromSupabase({ render = false } = {}) {
+  state.adminUsersLoading = true;
+  state.adminUserError = "";
+  if (render) renderHeroPanel();
+
+  try {
+    await fetchAdminUsersFromSupabase();
+    const authenticatedUserExists = reconcileAuthenticatedUserAfterSupabaseRefresh();
+    state.adminUsersLoading = false;
+    state.adminUserError = "";
+    if (!authenticatedUserExists) {
+      renderLoginScreen("Your admin user no longer exists in Supabase.");
+      return true;
+    }
+    if (render) {
+      renderSidebarNav();
+      renderMeta();
+      renderHeroPanel();
+    }
+    return true;
+  } catch (error) {
+    state.adminUsersLoading = false;
+    state.adminUserError = `Supabase users load failed: ${error?.message ?? "Unknown error"}`;
+    if (render) renderHeroPanel();
+    throw error;
+  }
+}
+
+function applyAdminUserToRuntime(user) {
+  const index = userAccounts.findIndex((item) => item.id === user.id);
+  if (index >= 0) userAccounts[index] = user;
+  else userAccounts.unshift(user);
+}
+
+async function saveAdminUserToSupabase(user, { mode = "insert" } = {}) {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. User was not saved.");
+  }
+
+  const payload = mapAdminUserToSupabase(user);
+  const query = mode === "update"
+    ? supabaseClient.from(ADMIN_USERS_TABLE).update(payload).eq("id", payload.id).select("*")
+    : supabaseClient.from(ADMIN_USERS_TABLE).insert(payload).select("*");
+
+  const { data: rows, error } = await query;
+  if (error) throw error;
+  const savedRow = Array.isArray(rows) ? rows[0] ?? null : null;
+  if (!savedRow) {
+    throw new Error("Supabase did not return the saved user. The UI was not updated.");
+  }
+  return mapAdminUserFromSupabase(savedRow);
+}
+
+async function deleteAdminUserFromSupabase(userId) {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. User was not deleted.");
+  }
+
+  const { data: rows, error } = await supabaseClient
+    .from(ADMIN_USERS_TABLE)
+    .delete()
+    .eq("id", userId)
+    .select("id");
+
+  if (error) throw error;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error("Supabase did not delete the user. The UI was not updated.");
+  }
+  return rows;
+}
+
 const state = {
   role: "Founder",
   currentUser: null,
@@ -1339,6 +1443,8 @@ const state = {
   ganttWeekStart: null,
   ganttScale: "week",
   adminView: "users",
+  adminUsersLoading: false,
+  adminUserError: "",
   formBuilderTableKey: "ventures",
   formBuilderStatus: "",
   formBuilderError: "",
@@ -2084,6 +2190,17 @@ function setupSupabaseRealtime() {
         })
         .catch((error) => {
           console.error("Supabase form settings realtime refresh failed", error);
+        });
+    },
+  );
+
+  channel = channel.on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: ADMIN_USERS_TABLE },
+    () => {
+      refreshAdminUsersFromSupabase({ render: state.activeNav === "admin" && state.adminView === "users" })
+        .catch((error) => {
+          console.error("Supabase users realtime refresh failed", error);
         });
     },
   );
@@ -4221,12 +4338,17 @@ function renderSidebarNav() {
       syncCurrentViewUrl();
       renderMeta();
       renderHeroPanel();
+      if (sidebarKey === "admin" && state.adminView === "users") {
+        refreshAdminUsersFromSupabase({ render: true }).catch((error) => {
+          console.error("Supabase users refresh failed", error);
+        });
+      }
     });
   });
 }
 
 function getCurrentSidebarUser() {
-  return userAccounts.find((user) => user.role === state.role) ?? userAccounts[0];
+  return state.currentUser ?? userAccounts.find((user) => user.role === state.role) ?? userAccounts[0];
 }
 
 function getInitials(name) {
@@ -4318,7 +4440,15 @@ function showAppShell() {
   document.body.classList.add("app-authenticated");
 }
 
-function loginApp(password) {
+async function loginApp(password) {
+  try {
+    await refreshAdminUsersFromSupabase();
+  } catch (error) {
+    console.error("Supabase users load failed during login", error);
+    renderLoginScreen(`Supabase users load failed: ${error?.message ?? "Unknown error"}`);
+    return false;
+  }
+
   const validation = validateUniquePasswords();
   if (!validation.valid) {
     renderLoginScreen(`Duplicate passwords exist for ${validation.users.join(", ")}. Passwords are case-insensitive; fix Admin users first.`);
@@ -6330,6 +6460,11 @@ function renderAdminUsersWorkspace() {
       .some((value) => String(value ?? "").toLowerCase().includes(query));
   });
   const currentCount = userAccounts.length;
+  const adminUsersStatus = state.adminUserError
+    ? `<p class="admin-data-status is-error">${escapeHtml(state.adminUserError)}</p>`
+    : state.adminUsersLoading
+      ? `<p class="admin-data-status">Loading users from Supabase...</p>`
+      : "";
 
   return `
     <div class="admin-view-shell">
@@ -6345,6 +6480,7 @@ function renderAdminUsersWorkspace() {
           <button class="new-record-button" type="button" id="add-user-button">+</button>
         </div>
       </div>
+      ${adminUsersStatus}
       <div class="records-table-wrap admin-user-table-wrap">
         <table class="records-table admin-user-table">
           <thead>
@@ -6396,7 +6532,7 @@ function renderAdminUsersWorkspace() {
           `;
         }).join("") || `
           <tr>
-            <td colspan="6" class="admin-user-empty">No users found.</td>
+            <td colspan="7" class="admin-user-empty">No users found.</td>
           </tr>
         `}
           </tbody>
@@ -6570,6 +6706,11 @@ function bindAdminWorkspaceEvents() {
       state.formBuilderStatus = "";
       state.formBuilderError = "";
       renderHeroPanel();
+      if (nextView === "users") {
+        refreshAdminUsersFromSupabase({ render: true }).catch((error) => {
+          console.error("Supabase users refresh failed", error);
+        });
+      }
     });
   });
 
@@ -7623,7 +7764,7 @@ async function saveRecord() {
   }
 }
 
-function saveAdminUser() {
+async function saveAdminUser() {
   const formData = new FormData(el.formElement);
   const payload = {
     name: String(formData.get("user_name") ?? "").trim(),
@@ -7651,29 +7792,44 @@ function saveAdminUser() {
     return false;
   }
 
-  if (state.modalMode === "edit" && state.editingUserId) {
-    const index = userAccounts.findIndex((item) => item.id === state.editingUserId);
-    if (index >= 0) {
-      userAccounts[index] = {
-        ...userAccounts[index],
-        ...payload,
-        createdAt: userAccounts[index].createdAt ?? new Date().toISOString(),
-        createdBy: userAccounts[index].createdBy ?? "System",
-      };
+  const isEdit = state.modalMode === "edit" && state.editingUserId;
+  const existingUser = isEdit ? userAccounts.find((item) => item.id === state.editingUserId) ?? null : null;
+  const nextUser = isEdit
+    ? {
+      ...existingUser,
+      ...payload,
+      id: state.editingUserId,
+      createdAt: existingUser?.createdAt ?? new Date().toISOString(),
+      createdBy: existingUser?.createdBy ?? "System",
     }
-  } else {
-    userAccounts.unshift({
+    : {
       id: `usr_${Date.now()}`,
       ...payload,
       createdAt: new Date().toISOString(),
       createdBy: state.currentUser?.name || state.currentUser?.email || "System",
-    });
-  }
+    };
 
   setAdminFormMessage("");
-  closeForm();
-  renderAll();
-  return true;
+  setSaveButtonLoading(true);
+  try {
+    const savedUser = await saveAdminUserToSupabase(nextUser, { mode: isEdit ? "update" : "insert" });
+    applyAdminUserToRuntime(savedUser);
+    await refreshAdminUsersFromSupabase();
+    if (state.currentUser?.id === savedUser.id) {
+      state.currentUser = savedUser;
+      state.role = savedUser.role;
+      setStoredAuthUser(savedUser);
+    }
+    closeForm();
+    renderAll();
+    return true;
+  } catch (error) {
+    console.error("Supabase user save failed", error);
+    setAdminFormMessage(`Supabase is not taking this user: ${error?.message ?? "Unknown error"}`);
+    return false;
+  } finally {
+    setSaveButtonLoading(false);
+  }
 }
 
 async function deleteAdminUser(userId) {
@@ -7681,10 +7837,29 @@ async function deleteAdminUser(userId) {
   if (!user) return false;
   const approved = await openDeleteConfirm(`Delete ${user.name}?`);
   if (!approved) return false;
-  const index = userAccounts.findIndex((item) => item.id === userId);
-  if (index >= 0) userAccounts.splice(index, 1);
-  renderAll();
-  return true;
+  const isDeletingCurrentUser = state.currentUser?.id === userId;
+
+  try {
+    await deleteAdminUserFromSupabase(userId);
+    await refreshAdminUsersFromSupabase();
+    if (isDeletingCurrentUser) {
+      state.currentUser = null;
+      state.isAuthenticated = false;
+      setStoredAuthState(false);
+      setStoredAuthUser(null);
+      renderLoginScreen("Your admin user was deleted in Supabase.");
+      return true;
+    }
+    renderSidebarNav();
+    renderMeta();
+    renderHeroPanel();
+    return true;
+  } catch (error) {
+    console.error("Supabase user delete failed", error);
+    state.adminUserError = `Supabase is not taking this delete: ${error?.message ?? "Unknown error"}`;
+    renderHeroPanel();
+    return false;
+  }
 }
 
 async function deleteRecord(tableKey, recordId) {
@@ -7716,14 +7891,9 @@ async function deleteRecord(tableKey, recordId) {
 }
 
 function bindEvents() {
-  el.loginForm?.addEventListener("submit", (event) => {
+  el.loginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const duplicatePasswords = validateUniquePasswords();
-    if (!duplicatePasswords.valid) {
-      renderLoginScreen("Duplicate passwords exist. Fix user passwords in Admin first.");
-      return;
-    }
-    loginApp(String(el.loginPassword?.value ?? "").trim());
+    await loginApp(String(el.loginPassword?.value ?? "").trim());
   });
 
   el.homeButton.addEventListener("click", () => {
@@ -7783,7 +7953,7 @@ function bindEvents() {
   el.confirmDeleteButton.addEventListener("click", () => closeDeleteConfirm(true));
   el.formElement.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (state.modalEntity === "user") saveAdminUser();
+    if (state.modalEntity === "user") await saveAdminUser();
     else {
       try {
         await saveRecord();
@@ -7975,13 +8145,28 @@ async function init() {
   applyUrlState();
   state.isMobileViewport = window.innerWidth <= MOBILE_BREAKPOINT;
   bindEvents();
-  state.isAuthenticated = getStoredAuthState();
-  state.currentUser = state.isAuthenticated ? getStoredAuthUser() : null;
-  if (state.currentUser) state.role = state.currentUser.role;
-  const validation = validateUniquePasswords();
-  if (!validation.valid) {
-    console.error(`Duplicate passwords found for: ${validation.users.join(", ")} (${validation.password})`);
+  try {
+    await refreshAdminUsersFromSupabase();
+  } catch (error) {
+    console.error("Supabase users load failed", error);
+    state.isAuthenticated = false;
+    setStoredAuthState(false);
+    setStoredAuthUser(null);
   }
+  state.isAuthenticated = getStoredAuthState();
+  const storedUser = state.isAuthenticated ? getStoredAuthUser() : null;
+  state.currentUser = storedUser
+    ? userAccounts.find((user) => user.id === storedUser.id) ?? null
+    : null;
+  if (!state.currentUser) {
+    state.isAuthenticated = false;
+    setStoredAuthState(false);
+    setStoredAuthUser(null);
+  } else {
+    state.role = state.currentUser.role;
+  }
+  const validation = validateUniquePasswords();
+  if (!validation.valid) console.error(`Duplicate passwords found for: ${validation.users.join(", ")} (${validation.password})`);
   try {
     await loadFormConfigFromSupabase();
   } catch (error) {
@@ -7991,7 +8176,7 @@ async function init() {
     }
   }
   if (state.isAuthenticated) showAppShell();
-  else renderLoginScreen("");
+  else renderLoginScreen(state.adminUserError || "");
   clearLegacyWorkflowStorage();
   normalizeAllHierarchyData();
   renderAll();
