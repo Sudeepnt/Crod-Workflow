@@ -4145,8 +4145,10 @@ input[type="search"] {
   line-height: 1.2;
 }
 
-.admin-user-table-wrap {
+.admin-user-table-wrap,
+.admin-audit-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   padding-top: 0;
 }
 
@@ -6191,67 +6193,20 @@ input[type="search"] {
   }
 
   .admin-user-table {
-    min-width: 0;
-    table-layout: fixed;
+    min-width: 920px;
   }
 
   .admin-audit-table {
-    min-width: 0;
-    table-layout: fixed;
-  }
-
-  .admin-user-table th:nth-child(1),
-  .admin-user-table td:nth-child(1) {
-    width: 44px;
-  }
-
-  .admin-user-table th:nth-child(2),
-  .admin-user-table td:nth-child(2) {
-    width: 84px;
-  }
-
-  .admin-user-table th:nth-child(3),
-  .admin-user-table td:nth-child(3) {
-    width: 80px;
-  }
-
-  .admin-user-table th:nth-child(4),
-  .admin-user-table td:nth-child(4) {
-    width: 62px;
-  }
-
-  .admin-user-table th:nth-child(n + 5),
-  .admin-user-table td:nth-child(n + 5) {
-    display: none;
+    min-width: 980px;
   }
 
   .admin-user-table th,
   .admin-user-table td {
-    padding: 12px 4px;
+    padding: 12px 10px;
   }
 
   .admin-user-name-cell span {
-    display: none;
-  }
-
-  .admin-audit-table th:nth-child(1),
-  .admin-audit-table td:nth-child(1) {
-    width: 96px;
-  }
-
-  .admin-audit-table th:nth-child(2),
-  .admin-audit-table td:nth-child(2) {
-    width: 90px;
-  }
-
-  .admin-audit-table th:nth-child(3),
-  .admin-audit-table td:nth-child(3) {
-    width: 84px;
-  }
-
-  .admin-audit-table th:nth-child(n + 4),
-  .admin-audit-table td:nth-child(n + 4) {
-    display: none;
+    display: inline;
   }
 
   .records-table-wrap-fixed-total {
