@@ -173,6 +173,7 @@ const FORM_CONFIG_TABLE = "app_form_configs";
 const FORM_CONFIG_KEY = "default";
 const FORM_CONFIG_VERSION = 1;
 const ADMIN_USERS_TABLE = "admin_users";
+const AUDIT_LOGS_TABLE = "app_audit_logs";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
 const APP_SESSION_KEY = "atit.appAuthenticated";
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
@@ -1411,6 +1412,131 @@ async function deleteAdminUserFromSupabase(userId) {
   return rows;
 }
 
+function getAuditActor() {
+  const user = state.currentUser ?? getCurrentSidebarUser?.() ?? null;
+  return {
+    userId: String(user?.id ?? "").trim(),
+    name: String(user?.name || user?.email || "System").trim(),
+    role: String(user?.role || state.role || "").trim(),
+  };
+}
+
+function getAuditTargetLabel(tableKey, record = {}) {
+  const fallback = tableKey === ADMIN_USERS_TABLE ? "User" : titleCaseKey(String(tableKey ?? "record"));
+  return String(
+    record?.name
+    ?? record?.title
+    ?? record?.reference
+    ?? record?.email
+    ?? record?.label
+    ?? fallback
+  ).trim();
+}
+
+function createAuditLogId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `aud_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function mapAuditLogFromSupabase(row = {}) {
+  return {
+    id: String(row.id ?? ""),
+    action: String(row.action ?? ""),
+    targetTable: String(row.target_table ?? ""),
+    targetId: String(row.target_id ?? ""),
+    targetLabel: String(row.target_label ?? ""),
+    actorUserId: String(row.actor_user_id ?? ""),
+    actorName: String(row.actor_name ?? "System"),
+    actorRole: String(row.actor_role ?? ""),
+    details: isPlainObject(row.details) ? row.details : {},
+    createdAt: row.created_at ?? null,
+  };
+}
+
+function mapAuditLogToSupabase(entry = {}) {
+  const actor = getAuditActor();
+  const record = entry.record ?? {};
+  return {
+    id: entry.id ?? createAuditLogId(),
+    action: String(entry.action ?? "").trim(),
+    target_table: String(entry.tableKey ?? entry.targetTable ?? "").trim(),
+    target_id: String(entry.recordId ?? record.id ?? "").trim(),
+    target_label: String(entry.recordLabel ?? getAuditTargetLabel(entry.tableKey ?? entry.targetTable, record)).trim(),
+    actor_user_id: actor.userId || null,
+    actor_name: actor.name || "System",
+    actor_role: actor.role || null,
+    details: isPlainObject(entry.details) ? entry.details : {},
+    created_at: new Date().toISOString(),
+  };
+}
+
+async function fetchAuditLogsFromSupabase() {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. Audit logs were not loaded.");
+  }
+
+  const { data: rows, error } = await supabaseClient
+    .from(AUDIT_LOGS_TABLE)
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+  state.auditLogs = (rows ?? []).map(mapAuditLogFromSupabase);
+  return state.auditLogs;
+}
+
+async function refreshAuditLogsFromSupabase({ render = false } = {}) {
+  state.auditLogsLoading = true;
+  state.auditLogError = "";
+  if (render) renderHeroPanel();
+
+  try {
+    await fetchAuditLogsFromSupabase();
+    state.auditLogsLoading = false;
+    state.auditLogError = "";
+  } catch (error) {
+    state.auditLogsLoading = false;
+    state.auditLogError = `Supabase audit load failed: ${error?.message ?? "Unknown error"}`;
+    throw error;
+  } finally {
+    if (render) renderHeroPanel();
+  }
+}
+
+async function appendAuditLogToSupabase(entry = {}) {
+  if (!supabaseClient) {
+    throw new Error("Supabase client is unavailable. Audit log was not saved.");
+  }
+
+  const payload = mapAuditLogToSupabase(entry);
+  if (!payload.action || !payload.target_table) return null;
+
+  const { data: rows, error } = await supabaseClient
+    .from(AUDIT_LOGS_TABLE)
+    .insert(payload)
+    .select("*");
+
+  if (error) throw error;
+  const savedRow = Array.isArray(rows) ? rows[0] ?? null : null;
+  if (!savedRow) return null;
+  const auditLog = mapAuditLogFromSupabase(savedRow);
+  state.auditLogs = [auditLog, ...state.auditLogs.filter((item) => item.id !== auditLog.id)].slice(0, 500);
+  if (state.activeNav === "audit") renderHeroPanel();
+  return auditLog;
+}
+
+async function writeAuditLogSafe(entry = {}) {
+  try {
+    return await appendAuditLogToSupabase(entry);
+  } catch (error) {
+    console.error("Supabase audit log save failed", error);
+    state.auditLogError = `Audit log save failed: ${error?.message ?? "Unknown error"}`;
+    if (state.activeNav === "audit") renderHeroPanel();
+    return null;
+  }
+}
+
 const state = {
   role: "Founder",
   currentUser: null,
@@ -1436,6 +1562,7 @@ const state = {
   detailTreeScroll: null,
   detailHistory: [],
   recordFilters: {},
+  archivedRecordViews: {},
   taskExpanded: {},
   ganttSidebarExpanded: {},
   ganttWorkstreamsCollapsed: null,
@@ -1445,6 +1572,9 @@ const state = {
   adminView: "users",
   adminUsersLoading: false,
   adminUserError: "",
+  auditLogs: [],
+  auditLogsLoading: false,
+  auditLogError: "",
   formBuilderTableKey: "ventures",
   formBuilderStatus: "",
   formBuilderError: "",
@@ -1524,11 +1654,14 @@ const remoteTableColumns = {
   transactions: ["id", "reference", "venture", "project", "task", "direction", "amount", "currency", "status", "counterparty", "project_asset", "due_date", "documents", "custom_fields", "created_at"],
 };
 
+const ARCHIVABLE_TABLE_KEYS = new Set(["ventures", "projects"]);
+
 const sidebarItems = [
   { key: "dashboard", label: "Dashboard", kind: "dashboard", count: null },
   ...tables.map((table) => ({ key: table.key, label: table.title, kind: "table" })),
   { key: "gantt", label: "Gantt Chart", kind: "gantt", count: null },
   { key: "admin", label: "Admin", kind: "admin", count: null },
+  { key: "audit", label: "Audit", kind: "audit", count: null },
 ];
 
 const peopleTypeHierarchy = ["Founder", "Investor", "Partner", "Client", "Vendor", "Consultant", "Contractor", "Employee"];
@@ -2035,6 +2168,22 @@ function getRecordAddedAt(row) {
   return row?.createdAt ? new Date(row.createdAt).getTime() : 0;
 }
 
+function canArchiveRecord(tableKey) {
+  return ARCHIVABLE_TABLE_KEYS.has(tableKey);
+}
+
+function isRecordArchived(row = {}) {
+  return Boolean(row?.archived ?? row?.custom_fields?.archived);
+}
+
+function getArchivedViewMode(tableKey) {
+  return state.archivedRecordViews[tableKey] === "archived" ? "archived" : "active";
+}
+
+function setArchivedViewMode(tableKey, mode) {
+  state.archivedRecordViews[tableKey] = mode === "archived" ? "archived" : "active";
+}
+
 function mapRecordToSupabase(tableKey, record) {
   const { createdAt, ...rest } = record;
   const defaults = jsonColumnDefaults[tableKey] ?? {};
@@ -2049,6 +2198,10 @@ function mapRecordToSupabase(tableKey, record) {
       delete normalized[fieldName];
     }
   });
+  if (canArchiveRecord(tableKey) && Object.hasOwn(normalized, "archived")) {
+    customFields.archived = Boolean(normalized.archived);
+    delete normalized.archived;
+  }
   normalized.custom_fields = customFields;
   if (tableKey === "documents") {
     const mergedLinks = [
@@ -2281,6 +2434,17 @@ function setupSupabaseRealtime() {
     },
   );
 
+  channel = channel.on(
+    "postgres_changes",
+    { event: "INSERT", schema: "public", table: AUDIT_LOGS_TABLE },
+    () => {
+      refreshAuditLogsFromSupabase({ render: state.activeNav === "audit" })
+        .catch((error) => {
+          console.error("Supabase audit realtime refresh failed", error);
+        });
+    },
+  );
+
   remoteRealtimeChannel = channel.subscribe((status) => {
     if (status === "CHANNEL_ERROR") {
       console.warn("Supabase realtime subscription failed; falling back to fetch refreshes.");
@@ -2356,8 +2520,11 @@ function getLinkedFilterValues(tableKey, row, fieldName) {
 function getFilteredAndSortedRows(table) {
   const query = state.search.trim().toLowerCase();
   const filters = getRecordFilterState(table.key);
+  const archivedViewMode = getArchivedViewMode(table.key);
 
   let rows = data[table.key].filter((row) => {
+    if (canArchiveRecord(table.key) && isRecordArchived(row) !== (archivedViewMode === "archived")) return false;
+
     if (query) {
       const matchesSearch = table.listColumns.some((column) => formatCell(table.key, column, row).toLowerCase().includes(query));
       if (!matchesSearch) return false;
@@ -3671,6 +3838,29 @@ function getRecordActionIcon(action) {
     `;
   }
 
+  if (action === "archive") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7h18"></path>
+        <path d="M5 7l1.2-3h11.6L19 7"></path>
+        <path d="M5 7v13h14V7"></path>
+        <path d="M10 12h4"></path>
+      </svg>
+    `;
+  }
+
+  if (action === "restore") {
+    return `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7h18"></path>
+        <path d="M5 7l1.2-3h11.6L19 7"></path>
+        <path d="M5 7v13h14V7"></path>
+        <path d="M12 16V10"></path>
+        <path d="M9 13l3-3 3 3"></path>
+      </svg>
+    `;
+  }
+
   if (action === "delete") {
     return `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -3692,6 +3882,19 @@ function renderRecordActionIconButton(action, label, attrs = "") {
       ${getRecordActionIcon(action)}
     </button>
   `;
+}
+
+function renderArchiveRecordActionButton(tableKey, row) {
+  if (!canArchiveRecord(tableKey)) {
+    return renderRecordActionIconButton("delete", `Delete ${row.name || row.title || row.reference || "record"}`, `data-record-action="delete" data-record-id="${escapeHtml(row.id)}"`);
+  }
+
+  const archived = isRecordArchived(row);
+  const action = archived ? "restore" : "archive";
+  const label = archived
+    ? `Restore ${row.name || row.title || row.reference || "record"}`
+    : `Archive ${row.name || row.title || row.reference || "record"}`;
+  return renderRecordActionIconButton(action, label, `data-record-action="${action}" data-record-id="${escapeHtml(row.id)}"`);
 }
 
 function getTaskPeopleTreeNodes(taskRow) {
@@ -4193,7 +4396,9 @@ function renderRecordDetail(table, record) {
           <div class="detail-actions">
             <button class="record-action-button" type="button" data-detail-action="tree">${state.detailTreeOpen ? "Hide tree" : "Tree view"}</button>
             ${renderRecordActionIconButton("edit", "Edit", 'data-detail-action="edit"')}
-            ${renderRecordActionIconButton("delete", "Delete", 'data-detail-action="delete"')}
+            ${canArchiveRecord(table.key)
+              ? renderRecordActionIconButton(isRecordArchived(record) ? "restore" : "archive", isRecordArchived(record) ? "Restore" : "Archive", `data-detail-action="${isRecordArchived(record) ? "restore" : "archive"}"`)
+              : renderRecordActionIconButton("delete", "Delete", 'data-detail-action="delete"')}
           </div>
         </div>
         <div class="detail-grid">
@@ -4297,6 +4502,8 @@ function renderMeta() {
     ? ` (${data[activeTable.key]?.length ?? 0})`
     : state.activeNav === "admin"
       ? ` (${userAccounts.length})`
+      : state.activeNav === "audit"
+        ? ` (${state.auditLogs.length})`
       : "";
   el.mobileNavTitle.textContent = `${getSidebarItemLabel(activeItem) ?? "Dashboard"}${countSuffix}`;
 }
@@ -4425,6 +4632,11 @@ function renderSidebarNav() {
       if (sidebarKey === "admin" && state.adminView === "users") {
         refreshAdminUsersFromSupabase({ render: true }).catch((error) => {
           console.error("Supabase users refresh failed", error);
+        });
+      }
+      if (sidebarKey === "audit") {
+        refreshAuditLogsFromSupabase({ render: true }).catch((error) => {
+          console.error("Supabase audit refresh failed", error);
         });
       }
     });
@@ -5414,6 +5626,16 @@ function getTableIcon(key) {
         <path d="M8.5 11.5h7"></path>
       </svg>
     `,
+    audit: `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 6h13"></path>
+        <path d="M8 12h13"></path>
+        <path d="M8 18h13"></path>
+        <path d="M3 6h.01"></path>
+        <path d="M3 12h.01"></path>
+        <path d="M3 18h.01"></path>
+      </svg>
+    `,
   };
   return icons[key] ?? icons.dashboard;
 }
@@ -5632,7 +5854,7 @@ function renderRecordsBody(table, rows) {
           ? `<button class="record-action-button" type="button" data-record-action="visit" data-record-id="${escapeHtml(row.id)}">Visit</button>`
           : ""}
         ${renderRecordActionIconButton("edit", `Edit ${row.name || row.title || row.reference || "record"}`, `data-record-action="edit" data-record-id="${escapeHtml(row.id)}"`)}
-        ${renderRecordActionIconButton("delete", `Delete ${row.name || row.title || row.reference || "record"}`, `data-record-action="delete" data-record-id="${escapeHtml(row.id)}"`)}
+        ${renderArchiveRecordActionButton(table.key, row)}
       </td>
     </tr>
   `).join("");
@@ -5941,6 +6163,47 @@ function bindAssetMapActions(rows) {
   });
 }
 
+function bindArchiveViewActions(table) {
+  document.querySelectorAll("[data-archive-view-toggle]").forEach((button) => {
+    button.addEventListener("click", () => toggleArchiveView(table));
+  });
+}
+
+function renderArchiveBackButton(archiveViewMode) {
+  if (archiveViewMode !== "archived") return "";
+  return `
+    <button
+      class="records-archive-back"
+      type="button"
+      data-archive-view-toggle
+      aria-label="Back to normal records"
+      title="Back to normal records"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6"></path>
+      </svg>
+    </button>
+  `;
+}
+
+function renderArchiveModeTag(archiveViewMode) {
+  return `
+    <span class="records-mode-tag ${archiveViewMode === "archived" ? "is-archived" : ""}">
+      ${archiveViewMode === "archived" ? "Archived records" : "Records"}
+    </span>
+  `;
+}
+
+function toggleArchiveView(table) {
+  const nextMode = getArchivedViewMode(table.key) === "archived" ? "active" : "archived";
+  setArchivedViewMode(table.key, nextMode);
+  state.detailTableKey = null;
+  state.detailRecordId = null;
+  state.detailTreeOpen = false;
+  clearDetailHistory();
+  renderHeroPanel();
+}
+
 function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptions) {
   const showVentureFilter = ventureOptions.length > 0;
   const showProjectFilter = projectOptions.length > 0;
@@ -5950,12 +6213,19 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
   const assetStatusOptions = table.key === "assets" ? getFilterOptions("assets", "status") : [];
   const searchPlaceholder = `Search ${escapeHtml(table.title.toLowerCase())}...`;
   const showAssetsViewToggle = table.key === "assets";
+  const showArchiveToggle = canArchiveRecord(table.key);
+  const archiveViewMode = getArchivedViewMode(table.key);
+  const archivedCount = showArchiveToggle ? data[table.key].filter(isRecordArchived).length : 0;
 
   return `
     <div class="records-toolbar">
       <div class="records-toolbar-title">
-        <h2>${escapeHtml(table.title)} <span class="records-title-count">(${rows.length})</span></h2>
-        <p id="records-count">${rows.length} records</p>
+        <div class="records-title-line">
+          ${showArchiveToggle ? renderArchiveBackButton(archiveViewMode) : ""}
+          <h2>${escapeHtml(table.title)} <span class="records-title-count">(${rows.length})</span></h2>
+          ${showArchiveToggle ? renderArchiveModeTag(archiveViewMode) : ""}
+        </div>
+        <p id="records-count">${rows.length} ${showArchiveToggle && archiveViewMode === "archived" ? "archived records" : "records"}</p>
       </div>
       <div class="records-toolbar-search">
         <input id="records-search" class="records-search" type="search" placeholder="${searchPlaceholder}" value="${escapeHtml(state.search)}" />
@@ -6036,6 +6306,16 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
               </svg>
             </button>
           </div>
+        ` : ""}
+        ${showArchiveToggle && archiveViewMode !== "archived" ? `
+          <button
+            class="records-archive-toggle"
+            type="button"
+            data-archive-view-toggle
+            title="Show archived records"
+          >
+            Archived records (${archivedCount})
+          </button>
         ` : ""}
         <button id="new-record-button" class="new-record-button" type="button">+</button>
       </div>
@@ -6246,6 +6526,12 @@ function bindRecordRowActions(table) {
       if (recordAction === "delete") {
         deleteRecord(table.key, recordId);
       }
+      if (recordAction === "archive") {
+        setRecordArchived(table.key, recordId, true);
+      }
+      if (recordAction === "restore") {
+        setRecordArchived(table.key, recordId, false);
+      }
     });
   });
 }
@@ -6369,6 +6655,12 @@ function renderHeroPanel() {
             goBackFromDetail();
           }
         }
+        if (action === "archive" || action === "restore") {
+          const changed = await setRecordArchived(detail.table.key, detail.record.id, action === "archive");
+          if (changed) {
+            goBackFromDetail();
+          }
+        }
         if (action === "tree") {
           state.detailTreeOpen = !state.detailTreeOpen;
           renderHeroPanel();
@@ -6416,6 +6708,23 @@ function renderHeroPanel() {
     return;
   }
 
+  if (state.activeNav === "audit") {
+    el.heroPanel.innerHTML = `
+      <div class="page-view page-view-audit">
+        <section class="panel admin-panel">
+          ${renderAdminAuditWorkspace()}
+        </section>
+      </div>
+    `;
+    bindAuditWorkspaceEvents();
+    if (!state.auditLogsLoading && state.auditLogs.length === 0 && !state.auditLogError) {
+      refreshAuditLogsFromSupabase({ render: true }).catch((error) => {
+        console.error("Supabase audit refresh failed", error);
+      });
+    }
+    return;
+  }
+
   if (state.activeNav === "gantt") {
     el.heroPanel.innerHTML = renderGanttChart();
     return;
@@ -6457,6 +6766,7 @@ function renderHeroPanel() {
   el.recordsStatusFilter = document.getElementById("records-status-filter");
   el.recordsOrderFilter = document.getElementById("records-order-filter");
   bindAssetMapActions(getFilteredAndSortedRows(table));
+  bindArchiveViewActions(table);
   if (el.recordsVentureFilter) {
     el.recordsVentureFilter.addEventListener("change", (event) => {
       getRecordFilterState(table.key).venture = event.target.value;
@@ -6512,10 +6822,15 @@ function renderDashboard() {
 }
 
 function renderAdminWorkspace() {
+  const viewRenderers = {
+    forms: renderAdminFormBuilder,
+    users: renderAdminUsersWorkspace,
+  };
+  const renderActiveView = viewRenderers[state.adminView] ?? renderAdminUsersWorkspace;
   return `
     <div class="admin-workspace">
       ${renderAdminTabs()}
-      ${state.adminView === "forms" ? renderAdminFormBuilder() : renderAdminUsersWorkspace()}
+      ${renderActiveView()}
     </div>
   `;
 }
@@ -6536,13 +6851,164 @@ function renderAdminTabs() {
   `;
 }
 
-function renderAdminUsersWorkspace() {
+function getAuditActionLabel(action) {
+  const labels = {
+    add: "Added",
+    edit: "Edited",
+    delete: "Deleted",
+    archive: "Archived",
+    restore: "Restored",
+    add_user: "Added user",
+    edit_user: "Edited user",
+    delete_user: "Deleted user",
+    add_custom_field: "Added field",
+    delete_custom_field: "Deleted field",
+    edit_form: "Edited form",
+    reset_forms: "Reset forms",
+  };
+  return labels[action] ?? titleCaseKey(String(action || "action"));
+}
+
+function getFilteredAuditLogs() {
   const query = state.search.trim().toLowerCase();
-  const filteredUsers = userAccounts.filter((user) => {
+  return state.auditLogs.filter((log) => {
+    if (!query) return true;
+    return [
+      getAuditActionLabel(log.action),
+      log.targetTable,
+      log.targetLabel,
+      log.actorName,
+      log.actorRole,
+      log.createdAt ? formatDashboardDate(log.createdAt, true) : "",
+    ].some((value) => String(value ?? "").toLowerCase().includes(query));
+  });
+}
+
+function renderAdminAuditRows(logs = getFilteredAuditLogs()) {
+  return logs.map((log) => `
+    <tr>
+      <td>${escapeHtml(log.createdAt ? formatDashboardDate(log.createdAt, true) : "-")}</td>
+      <td>
+        <div class="admin-user-name-cell">
+          <strong>${escapeHtml(log.actorName || "System")}</strong>
+          <span>${escapeHtml(log.actorUserId || "No user id")}</span>
+        </div>
+      </td>
+      <td><span class="admin-audit-action">${escapeHtml(getAuditActionLabel(log.action))}</span></td>
+      <td>${escapeHtml(getTableByKey(log.targetTable)?.title ?? titleCaseKey(log.targetTable))}</td>
+      <td>${escapeHtml(log.targetLabel || log.targetId || "-")}</td>
+      <td>${escapeHtml(log.actorRole || "-")}</td>
+    </tr>
+  `).join("") || `
+    <tr>
+      <td colspan="6" class="admin-user-empty">No audit records found.</td>
+    </tr>
+  `;
+}
+
+function refreshAdminAuditRows() {
+  const body = document.getElementById("admin-audit-table-body");
+  if (body) body.innerHTML = renderAdminAuditRows();
+}
+
+function renderAdminAuditWorkspace() {
+  const auditStatus = state.auditLogError
+    ? `<p class="admin-data-status is-error">${escapeHtml(state.auditLogError)}</p>`
+    : state.auditLogsLoading
+      ? `<p class="admin-data-status">Loading audit trail from Supabase...</p>`
+      : "";
+
+  return `
+    <div class="admin-view-shell admin-audit-shell">
+      <div class="records-toolbar admin-workspace-head">
+        <div class="records-toolbar-search">
+          <input id="admin-audit-search" class="records-search" type="search" placeholder="Search audit..." value="${escapeHtml(state.search)}" />
+        </div>
+        <div class="admin-audit-lock" title="Audit records are append-only">
+          Read only · never deleted
+        </div>
+      </div>
+      ${auditStatus}
+      <div class="records-table-wrap admin-audit-table-wrap">
+        <table class="records-table admin-audit-table">
+          <thead>
+            <tr>
+              <th>Date & time</th>
+              <th>User</th>
+              <th>Action</th>
+              <th>Area</th>
+              <th>Record</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody id="admin-audit-table-body">
+            ${renderAdminAuditRows()}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function getFilteredAdminUsers() {
+  const query = state.search.trim().toLowerCase();
+  return userAccounts.filter((user) => {
     if (!query) return true;
     return [user.name, user.email, user.role, user.password]
       .some((value) => String(value ?? "").toLowerCase().includes(query));
   });
+}
+
+function renderAdminUserRows(users = getFilteredAdminUsers()) {
+  return users.map((user, index) => {
+    return `
+      <tr data-user-id="${escapeHtml(user.id)}">
+        <td>${index + 1}</td>
+        <td>
+          <div class="admin-user-name-cell">
+            <strong>${escapeHtml(user.name)}</strong>
+            <span>${escapeHtml(user.email)}</span>
+          </div>
+        </td>
+        <td>${escapeHtml(user.password)}</td>
+        <td><span class="admin-user-role">${escapeHtml(user.role)}</span></td>
+        <td>${escapeHtml(user.createdBy || "System")}</td>
+        <td>${escapeHtml(user.createdAt ? formatDashboardDate(user.createdAt, true) : "—")}</td>
+        <td>
+          <div class="admin-user-actions">
+            <button class="record-action-button admin-user-icon-button" type="button" data-user-action="edit" data-user-id="${escapeHtml(user.id)}" aria-label="Edit ${escapeHtml(user.name)}" title="Edit">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 20h9"></path>
+                <path d="m16.5 3.5 4 4L7 21l-4 1 1-4L16.5 3.5z"></path>
+              </svg>
+            </button>
+            <button class="record-action-button admin-user-icon-button" type="button" data-user-action="delete" data-user-id="${escapeHtml(user.id)}" aria-label="Delete ${escapeHtml(user.name)}" title="Delete">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4h8v2"></path>
+                <path d="M19 6l-1 14H6L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join("") || `
+    <tr>
+      <td colspan="7" class="admin-user-empty">No users found.</td>
+    </tr>
+  `;
+}
+
+function refreshAdminUserRows() {
+  const body = document.getElementById("admin-user-table-body");
+  if (body) body.innerHTML = renderAdminUserRows();
+  bindAdminUserActionEvents();
+}
+
+function renderAdminUsersWorkspace() {
   const adminUsersStatus = state.adminUserError
     ? `<p class="admin-data-status is-error">${escapeHtml(state.adminUserError)}</p>`
     : state.adminUsersLoading
@@ -6573,47 +7039,8 @@ function renderAdminUsersWorkspace() {
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody>
-        ${filteredUsers.map((user, index) => {
-          return `
-            <tr data-user-id="${escapeHtml(user.id)}">
-              <td>${index + 1}</td>
-              <td>
-                <div class="admin-user-name-cell">
-                  <strong>${escapeHtml(user.name)}</strong>
-                  <span>${escapeHtml(user.email)}</span>
-                </div>
-              </td>
-              <td>${escapeHtml(user.password)}</td>
-              <td><span class="admin-user-role">${escapeHtml(user.role)}</span></td>
-              <td>${escapeHtml(user.createdBy || "System")}</td>
-              <td>${escapeHtml(user.createdAt ? formatDashboardDate(user.createdAt, true) : "—")}</td>
-              <td>
-                <div class="admin-user-actions">
-                  <button class="record-action-button admin-user-icon-button" type="button" data-user-action="edit" data-user-id="${escapeHtml(user.id)}" aria-label="Edit ${escapeHtml(user.name)}" title="Edit">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M12 20h9"></path>
-                      <path d="m16.5 3.5 4 4L7 21l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                  </button>
-                  <button class="record-action-button admin-user-icon-button" type="button" data-user-action="delete" data-user-id="${escapeHtml(user.id)}" aria-label="Delete ${escapeHtml(user.name)}" title="Delete">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M3 6h18"></path>
-                      <path d="M8 6V4h8v2"></path>
-                      <path d="M19 6l-1 14H6L5 6"></path>
-                      <path d="M10 11v6"></path>
-                      <path d="M14 11v6"></path>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          `;
-        }).join("") || `
-          <tr>
-            <td colspan="7" class="admin-user-empty">No users found.</td>
-          </tr>
-        `}
+          <tbody id="admin-user-table-body">
+            ${renderAdminUserRows()}
           </tbody>
         </table>
       </div>
@@ -6906,16 +7333,26 @@ function bindAdminWorkspaceEvents() {
 
   document.getElementById("admin-search")?.addEventListener("input", (event) => {
     state.search = event.target.value;
-    renderHeroPanel();
-    bindAdminWorkspaceEvents();
+    refreshAdminUserRows();
   });
 
+  bindAdminUserActionEvents();
+}
+
+function bindAdminUserActionEvents() {
   document.querySelectorAll("[data-user-action]").forEach((button) => {
     button.addEventListener("click", () => {
       const { userAction, userId } = button.dataset;
       if (userAction === "edit") openAdminUserForm(userId);
       if (userAction === "delete") deleteAdminUser(userId);
     });
+  });
+}
+
+function bindAuditWorkspaceEvents() {
+  document.getElementById("admin-audit-search")?.addEventListener("input", (event) => {
+    state.search = event.target.value;
+    refreshAdminAuditRows();
   });
 }
 
@@ -7026,6 +7463,13 @@ async function addCustomFormBuilderField(button) {
 
   try {
     await saveFormConfigToSupabase(activeFormConfig);
+    await writeAuditLogSafe({
+      action: "add_custom_field",
+      tableKey: "form_builder",
+      recordId: tableKey,
+      recordLabel: `${tableConfig.title || tableKey}: ${label}`,
+      details: { form_key: tableKey, field_name: fieldName, field_type: type },
+    });
     state.formBuilderStatus = `${label} added and saved to Supabase.`;
     state.formBuilderError = "";
   } catch (error) {
@@ -7056,6 +7500,13 @@ async function deleteCustomFormBuilderField(button) {
 
   try {
     await saveFormConfigToSupabase(activeFormConfig);
+    await writeAuditLogSafe({
+      action: "delete_custom_field",
+      tableKey: "form_builder",
+      recordId: tableKey,
+      recordLabel: `${tableConfig.title || tableKey}: ${field.label || field.name}`,
+      details: { form_key: tableKey, field_name: fieldName },
+    });
     state.formBuilderStatus = `${field.label || field.name} deleted and saved to Supabase.`;
     state.formBuilderError = "";
   } catch (error) {
@@ -7167,13 +7618,20 @@ function bindFormBuilderEvents() {
   document.getElementById("reset-form-config-button")?.addEventListener("click", resetFormBuilderConfig);
 }
 
-async function saveFormBuilderConfig() {
+async function saveFormBuilderConfig({ auditAction = "edit_form", auditLabel = "Form settings" } = {}) {
   state.formBuilderStatus = "Saving form settings...";
   state.formBuilderError = "";
   renderHeroPanel();
 
   try {
     await saveFormConfigToSupabase(activeFormConfig);
+    await writeAuditLogSafe({
+      action: auditAction,
+      tableKey: "form_builder",
+      recordId: state.formBuilderTableKey,
+      recordLabel: auditLabel,
+      details: { active_form: state.formBuilderTableKey },
+    });
     state.formBuilderStatus = "Form settings saved to Supabase.";
     state.formBuilderError = "";
     renderSidebarNav();
@@ -7192,7 +7650,7 @@ async function resetFormBuilderConfig() {
   if (!approved) return;
   activeFormConfig = cloneJson(defaultFormConfig);
   applyFormConfig(activeFormConfig);
-  await saveFormBuilderConfig();
+  await saveFormBuilderConfig({ auditAction: "reset_forms", auditLabel: "All form settings" });
 }
 
 function renderSearch() {
@@ -7707,16 +8165,17 @@ function syncBodyModalState() {
   }
 }
 
-function openDeleteConfirm(message, confirmLabel = "Delete") {
+function openConfirmDialog({ title = "Confirm action?", message, confirmLabel = "Confirm" }) {
   if (confirmResolve) {
     confirmResolve(false);
     confirmResolve = null;
   }
 
-  el.confirmTitle.textContent = "Delete item?";
+  el.confirmTitle.textContent = title;
   el.confirmMessage.textContent = message;
   el.confirmDeleteButton.textContent = confirmLabel;
   el.confirmModal.classList.add("open");
+  el.confirmModal.setAttribute("aria-hidden", "false");
   syncBodyModalState();
   el.confirmDeleteButton.focus();
 
@@ -7725,9 +8184,18 @@ function openDeleteConfirm(message, confirmLabel = "Delete") {
   });
 }
 
+function openDeleteConfirm(message, confirmLabel = "Delete") {
+  return openConfirmDialog({
+    title: "Delete item?",
+    message,
+    confirmLabel,
+  });
+}
+
 function closeDeleteConfirm(result = false) {
   if (!confirmResolve) {
     el.confirmModal.classList.remove("open");
+    el.confirmModal.setAttribute("aria-hidden", "true");
     syncBodyModalState();
     return;
   }
@@ -7735,6 +8203,7 @@ function closeDeleteConfirm(result = false) {
   const resolve = confirmResolve;
   confirmResolve = null;
   el.confirmModal.classList.remove("open");
+  el.confirmModal.setAttribute("aria-hidden", "true");
   syncBodyModalState();
   resolve(result);
 }
@@ -8251,6 +8720,16 @@ async function saveRecord() {
       try {
         syncedPerson = await syncRecordToSupabase("people", personDraft, { mode: "insert" });
         applySupabaseRecordToTable("people", syncedPerson, personDraft.id);
+        await writeAuditLogSafe({
+          action: "add",
+          tableKey: "people",
+          record: syncedPerson,
+          details: {
+            source: "inline_primary_contact",
+            parent_table: "ventures",
+            parent_record_id: syncedRecord.id,
+          },
+        });
         syncedRecord = await syncRecordToSupabase("ventures", {
           ...syncedRecord,
           primary_contact: syncedPerson.name,
@@ -8262,6 +8741,11 @@ async function saveRecord() {
     }
 
     applySupabaseRecordToTable(table.key, syncedRecord, nextRecord.id);
+    await writeAuditLogSafe({
+      action: isEdit || existingPeopleRow ? "edit" : "add",
+      tableKey: table.key,
+      record: syncedRecord,
+    });
     normalizeAllHierarchyData();
     closeForm();
     renderAll();
@@ -8332,6 +8816,11 @@ async function saveAdminUser() {
   try {
     const savedUser = await saveAdminUserToSupabase(nextUser, { mode: isEdit ? "update" : "insert" });
     applyAdminUserToRuntime(savedUser);
+    await writeAuditLogSafe({
+      action: isEdit ? "edit_user" : "add_user",
+      tableKey: ADMIN_USERS_TABLE,
+      record: savedUser,
+    });
     await refreshAdminUsersFromSupabase();
     if (state.currentUser?.id === savedUser.id) {
       state.currentUser = savedUser;
@@ -8359,6 +8848,11 @@ async function deleteAdminUser(userId) {
 
   try {
     await deleteAdminUserFromSupabase(userId);
+    await writeAuditLogSafe({
+      action: "delete_user",
+      tableKey: ADMIN_USERS_TABLE,
+      record: user,
+    });
     await refreshAdminUsersFromSupabase();
     if (isDeletingCurrentUser) {
       state.currentUser = null;
@@ -8380,7 +8874,56 @@ async function deleteAdminUser(userId) {
   }
 }
 
+async function setRecordArchived(tableKey, recordId, archived) {
+  if (!canArchiveRecord(tableKey)) return false;
+  const table = tables.find((item) => item.key === tableKey);
+  if (!table) return false;
+  const row = data[tableKey].find((item) => item.id === recordId);
+  if (!row) return false;
+  if (isRecordArchived(row) === archived) return true;
+
+  const label = row?.name || row?.title || row?.reference || table.singular || table.title;
+  const approved = await openConfirmDialog({
+    title: archived ? "Archive record?" : "Restore record?",
+    message: archived
+      ? `Do you want to archive ${label}? It will move to Archived records and can be restored later.`
+      : `Do you want to restore ${label}? It will move back to active records.`,
+    confirmLabel: archived ? "Archive" : "Restore",
+  });
+  if (!approved) return false;
+
+  const nextRecord = {
+    ...row,
+    archived,
+    custom_fields: {
+      ...(isPlainObject(row.custom_fields) ? row.custom_fields : {}),
+      archived,
+    },
+  };
+
+  try {
+    const syncedRecord = await syncRecordToSupabase(tableKey, nextRecord, { mode: "update" });
+    applySupabaseRecordToTable(tableKey, syncedRecord, recordId);
+    await writeAuditLogSafe({
+      action: archived ? "archive" : "restore",
+      tableKey,
+      record: syncedRecord,
+    });
+    normalizeAllHierarchyData();
+    renderAll();
+    await refreshRemoteData({ syncHierarchy: true, render: true });
+    return true;
+  } catch (error) {
+    console.error("Supabase archive update failed", error);
+    window.alert(`Supabase is not taking this archive change: ${error?.message ?? "Unknown error"}`);
+    return false;
+  }
+}
+
 async function deleteRecord(tableKey, recordId) {
+  if (canArchiveRecord(tableKey)) {
+    return setRecordArchived(tableKey, recordId, true);
+  }
   const table = tables.find((item) => item.key === tableKey);
   if (!table) return false;
   const row = data[tableKey].find((item) => item.id === recordId);
@@ -8388,6 +8931,9 @@ async function deleteRecord(tableKey, recordId) {
   const approved = await openDeleteConfirm(`Delete ${label}?`);
   if (!approved) return false;
   const taskIdsToDelete = tableKey === "tasks" ? getTaskDescendantIds(recordId) : [recordId];
+  const deletedRows = taskIdsToDelete
+    .map((id) => data[tableKey].find((item) => item.id === id))
+    .filter(Boolean);
 
   try {
     if (tableKey === "tasks") {
@@ -8397,6 +8943,11 @@ async function deleteRecord(tableKey, recordId) {
       await removeRecordFromSupabase(tableKey, recordId);
       data[tableKey] = data[tableKey].filter((item) => item.id !== recordId);
     }
+    await Promise.all(deletedRows.map((deletedRow) => writeAuditLogSafe({
+      action: "delete",
+      tableKey,
+      record: deletedRow,
+    })));
     normalizeAllHierarchyData();
     renderAll();
     await refreshRemoteData({ syncHierarchy: true, render: true });
