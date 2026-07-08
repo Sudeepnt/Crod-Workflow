@@ -5177,6 +5177,7 @@ function openShareModal(table, record) {
 
 function showSharedShell() {
   el.loginScreen.hidden = true;
+  document.body.classList.remove("app-booting");
   document.body.classList.add("app-authenticated", "shared-view");
 }
 
@@ -5536,6 +5537,7 @@ function bindRecordSharedNoteActions(tableKey, recordId) {
 function renderLoginScreen(message = "") {
   if (!el.loginScreen) return;
   el.loginScreen.hidden = false;
+  document.body.classList.remove("app-booting");
   document.body.classList.remove("app-authenticated", "shared-view");
   if (el.loginError) el.loginError.textContent = message;
   if (el.loginPassword) {
@@ -5547,6 +5549,7 @@ function renderLoginScreen(message = "") {
 function showAppShell() {
   if (!el.loginScreen) return;
   el.loginScreen.hidden = true;
+  document.body.classList.remove("app-booting");
   document.body.classList.add("app-authenticated");
   document.body.classList.remove("shared-view");
 }
@@ -5578,6 +5581,13 @@ async function loginApp(password) {
   setStoredAuthState(true);
   setStoredAuthUser(user);
   if (el.loginError) el.loginError.textContent = "";
+  try {
+    await refreshRemoteData({ syncHierarchy: true, render: false });
+  } catch (error) {
+    console.error("Supabase data load failed during login", error);
+    renderLoginScreen(`Supabase data load failed: ${error?.message ?? "Unknown error"}`);
+    return false;
+  }
   showAppShell();
   renderAll();
   return true;
@@ -7014,6 +7024,23 @@ function renderArchiveBackButton(archiveViewMode) {
   `;
 }
 
+function renderArchiveMobileBackButton(archiveViewMode) {
+  if (archiveViewMode !== "archived") return "";
+  return `
+    <button
+      class="records-archive-back records-archive-back-mobile"
+      type="button"
+      data-archive-view-toggle
+      aria-label="Back to normal records"
+      title="Back to normal records"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6"></path>
+      </svg>
+    </button>
+  `;
+}
+
 function renderArchiveModeTag(archiveViewMode) {
   return `
     <span class="records-mode-tag ${archiveViewMode === "archived" ? "is-archived" : ""}">
@@ -7044,9 +7071,14 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
   const showArchiveToggle = canArchiveRecord(table.key);
   const archiveViewMode = getArchivedViewMode(table.key);
   const archivedCount = showArchiveToggle ? data[table.key].filter(isRecordArchived).length : 0;
+  const toolbarClasses = [
+    "records-toolbar",
+    showArchiveToggle ? "has-archive-toggle" : "",
+    showArchiveToggle && archiveViewMode === "archived" ? "is-archived-mode" : "",
+  ].filter(Boolean).join(" ");
 
   return `
-    <div class="records-toolbar">
+    <div class="${toolbarClasses}">
       <div class="records-toolbar-title">
         <div class="records-title-line">
           ${showArchiveToggle ? renderArchiveBackButton(archiveViewMode) : ""}
@@ -7056,6 +7088,7 @@ function renderRecordsToolbar(table, rows, filters, ventureOptions, projectOptio
         <p id="records-count">${rows.length} ${showArchiveToggle && archiveViewMode === "archived" ? "archived records" : "records"}</p>
       </div>
       <div class="records-toolbar-search">
+        ${showArchiveToggle ? renderArchiveMobileBackButton(archiveViewMode) : ""}
         <input id="records-search" class="records-search" type="search" placeholder="${searchPlaceholder}" value="${escapeHtml(state.search)}" />
       </div>
       <div class="records-toolbar-actions">
@@ -10096,19 +10129,22 @@ async function init() {
       window.alert(`Supabase form settings load failed: ${error?.message ?? "Unknown error"}`);
     }
   }
-  if (state.isAuthenticated) showAppShell();
-  else renderLoginScreen(state.adminUserError || "");
   clearLegacyWorkflowStorage();
-  normalizeAllHierarchyData();
-  renderAll();
-  setupSupabaseRealtime();
-  refreshRemoteData({ syncHierarchy: true, render: true })
-    .catch((error) => {
+  if (state.isAuthenticated) {
+    try {
+      await refreshRemoteData({ syncHierarchy: true, render: false });
+    } catch (error) {
       console.error("Supabase data load failed", error);
-      if (state.isAuthenticated) {
-        window.alert(`Supabase data load failed: ${error?.message ?? "Unknown error"}`);
-      }
-    });
+      window.alert(`Supabase data load failed: ${error?.message ?? "Unknown error"}`);
+    }
+    showAppShell();
+    renderAll();
+    setupSupabaseRealtime();
+  } else {
+    renderLoginScreen(state.adminUserError || "");
+    normalizeAllHierarchyData();
+    renderAll();
+  }
 }
 
 init().catch((error) => {

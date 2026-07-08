@@ -23,6 +23,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+body.app-booting #login-screen,
+body.app-booting .app-shell {
+  display: none;
+}
+
 body.app-authenticated #login-screen {
   display: none;
 }
@@ -2096,6 +2101,10 @@ input[type="search"] {
   display: block;
 }
 
+.records-archive-back-mobile {
+  display: none;
+}
+
 .records-title-count {
   display: none;
   color: var(--muted);
@@ -4150,6 +4159,9 @@ input[type="search"] {
 }
 
 .admin-audit-lock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 9px 13px;
@@ -4157,6 +4169,8 @@ input[type="search"] {
   background: #ffffff;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
 }
 
@@ -5748,8 +5762,49 @@ input[type="search"] {
     display: none;
   }
 
+  .records-toolbar.is-archived-mode {
+    grid-template-areas:
+      "title title"
+      "search actions";
+    align-items: center;
+  }
+
+  .records-toolbar.is-archived-mode .records-toolbar-title {
+    grid-area: title;
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .records-toolbar.is-archived-mode .records-title-line {
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .records-toolbar.is-archived-mode .records-title-line > .records-archive-back {
+    display: none;
+  }
+
+  .records-toolbar.is-archived-mode .records-mode-tag {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
   .records-toolbar-search {
     grid-area: search;
+  }
+
+  .records-toolbar.is-archived-mode .records-toolbar-search {
+    align-items: center;
+    gap: 8px;
+  }
+
+  .records-toolbar.is-archived-mode .records-archive-back-mobile {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    border-radius: 12px;
   }
 
   .records-toolbar-actions {
