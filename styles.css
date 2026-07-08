@@ -3595,7 +3595,14 @@ input[type="search"] {
   line-height: 1.5;
 }
 
-.shared-note-delete {
+.shared-note-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.shared-note-reply-button {
   border: 1px solid var(--line);
   border-radius: 999px;
   background: #ffffff;
@@ -3604,6 +3611,38 @@ input[type="search"] {
   font: inherit;
   font-size: 12px;
   cursor: pointer;
+}
+
+.shared-note-delete {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.shared-note-delete svg {
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+
+.shared-note-replies {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+  padding-left: 18px;
+  border-left: 2px solid #e8ecef;
+}
+
+.shared-note-card.shared-note-reply {
+  background: #fbfbfb;
 }
 
 .shared-notes-empty,

@@ -2265,6 +2265,7 @@ function getRecordSharedNotesKey(tableKey, recordId) {
 function normalizeSharedNote(note = {}) {
   return {
     id: String(note.id ?? ""),
+    parentNoteId: String(note.parentNoteId ?? note.parent_note_id ?? ""),
     subject: String(note.subject ?? ""),
     content: String(note.content ?? ""),
     authorRole: String(note.authorRole ?? note.author_role ?? "Shared user"),
@@ -2355,7 +2356,9 @@ async function fetchRecordSharedNotes(tableKey, recordId) {
     p_target_id: recordId,
   });
   if (error) throw error;
-  const notes = Array.isArray(rows) ? rows.map(normalizeSharedNote) : [];
+  const notes = Array.isArray(rows)
+    ? rows.map((note) => ({ ...normalizeSharedNote(note), canDelete: true }))
+    : [];
   const key = getRecordSharedNotesKey(tableKey, recordId);
   state.recordSharedNotes[key] = notes;
   return notes;
@@ -2448,6 +2451,21 @@ async function addSharedNote(subject, content) {
   return normalizeSharedNote(result.note);
 }
 
+async function addSharedNoteReply(parentNoteId, content) {
+  if (!supabaseClient) throw new Error("Supabase client is unavailable. Reply was not saved.");
+  const { data: result, error } = await supabaseClient.rpc("add_shared_note_reply", {
+    p_token: state.sharedToken,
+    p_password: state.sharedPassword || "",
+    p_author_key: state.sharedAuthorKey || getSharedAuthorKey(state.sharedToken),
+    p_parent_note_id: parentNoteId,
+    p_content: content,
+  });
+  if (error) throw error;
+  if (!result?.ok) throw new Error(result?.error || "Reply was not saved.");
+  await loadSharedBundle({ password: state.sharedPassword });
+  return normalizeSharedNote(result.note);
+}
+
 async function deleteSharedNote(noteId) {
   if (!supabaseClient) throw new Error("Supabase client is unavailable. Note was not deleted.");
   const { data: result, error } = await supabaseClient.rpc("delete_shared_note", {
@@ -2457,8 +2475,39 @@ async function deleteSharedNote(noteId) {
     p_note_id: noteId,
   });
   if (error) throw error;
-  if (!result?.ok || !result?.deleted) throw new Error("Only the note creator can delete this note.");
+  if (!result?.ok || !result?.deleted) throw new Error("Note was not deleted.");
   await loadSharedBundle({ password: state.sharedPassword });
+  return true;
+}
+
+async function addRecordSharedNoteReply(tableKey, recordId, parentNoteId, content) {
+  if (!supabaseClient) throw new Error("Supabase client is unavailable. Reply was not saved.");
+  const actor = getCurrentSidebarUser();
+  const { data: result, error } = await supabaseClient.rpc("add_record_shared_note_reply", {
+    p_target_table: tableKey,
+    p_target_id: recordId,
+    p_parent_note_id: parentNoteId,
+    p_content: content,
+    p_author_label: actor?.name || actor?.email || actor?.role || "Internal user",
+  });
+  if (error) throw error;
+  if (!result?.ok) throw new Error(result?.error || "Reply was not saved.");
+  await fetchRecordSharedNotes(tableKey, recordId);
+  renderHeroPanel();
+  return normalizeSharedNote(result.note);
+}
+
+async function deleteRecordSharedNote(tableKey, recordId, noteId) {
+  if (!supabaseClient) throw new Error("Supabase client is unavailable. Note was not deleted.");
+  const { data: result, error } = await supabaseClient.rpc("delete_record_shared_note", {
+    p_target_table: tableKey,
+    p_target_id: recordId,
+    p_note_id: noteId,
+  });
+  if (error) throw error;
+  if (!result?.ok || !result?.deleted) throw new Error("Note was not deleted.");
+  await fetchRecordSharedNotes(tableKey, recordId);
+  renderHeroPanel();
   return true;
 }
 
@@ -4518,27 +4567,80 @@ function getExpandedLinkedGroups(tableKey, record) {
     }));
 }
 
-function renderSharedNotesList(notes = [], { emptyText = "No notes yet.", showDelete = false } = {}) {
+function renderSharedNoteDeleteIcon() {
+  return `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M3 6h18"></path>
+      <path d="M8 6V4h8v2"></path>
+      <path d="M19 6l-1 14H6L5 6"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+    </svg>
+  `;
+}
+
+function groupSharedNotes(notes = []) {
+  const normalized = notes.map(normalizeSharedNote);
+  const childrenByParent = new Map();
+  const roots = [];
+
+  normalized.forEach((note) => {
+    if (note.parentNoteId) {
+      const children = childrenByParent.get(note.parentNoteId) ?? [];
+      children.push(note);
+      childrenByParent.set(note.parentNoteId, children);
+      return;
+    }
+    roots.push(note);
+  });
+
+  const byDateAsc = (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+  childrenByParent.forEach((children) => children.sort(byDateAsc));
+  return { roots, childrenByParent };
+}
+
+function renderSharedNoteCard(note, options = {}, childrenByParent = new Map(), depth = 0) {
+  const replies = childrenByParent.get(note.id) ?? [];
+  const canDelete = Boolean(options.showDelete && note.canDelete);
+  const canReply = Boolean(options.showReply);
+
+  return `
+    <article class="shared-note-card ${depth > 0 ? "shared-note-reply" : ""}">
+      <div class="shared-note-head">
+        <div>
+          <h4>${escapeHtml(note.subject || (depth > 0 ? "Reply" : "Untitled note"))}</h4>
+          <p>${escapeHtml(note.authorRole || "Shared user")} · ${escapeHtml(note.createdAt ? formatDashboardDate(note.createdAt, true) : "Just now")}</p>
+        </div>
+        ${canDelete || canReply ? `
+          <div class="shared-note-actions">
+            ${canReply ? `<button class="shared-note-reply-button" type="button" data-shared-note-reply="${escapeHtml(note.id)}">Reply</button>` : ""}
+            ${canDelete ? `
+              <button class="shared-note-delete" type="button" data-shared-note-delete="${escapeHtml(note.id)}" aria-label="Delete note" title="Delete note">
+                ${renderSharedNoteDeleteIcon()}
+              </button>
+            ` : ""}
+          </div>
+        ` : ""}
+      </div>
+      <p class="shared-note-content">${escapeHtml(note.content)}</p>
+      ${replies.length ? `
+        <div class="shared-note-replies">
+          ${replies.map((reply) => renderSharedNoteCard(reply, options, childrenByParent, depth + 1)).join("")}
+        </div>
+      ` : ""}
+    </article>
+  `;
+}
+
+function renderSharedNotesList(notes = [], { emptyText = "No notes yet.", showDelete = false, showReply = false } = {}) {
   if (!notes.length) {
     return `<div class="shared-notes-empty">${escapeHtml(emptyText)}</div>`;
   }
+  const { roots, childrenByParent } = groupSharedNotes(notes);
 
   return `
     <div class="shared-notes-list">
-      ${notes.map((note) => `
-        <article class="shared-note-card">
-          <div class="shared-note-head">
-            <div>
-              <h4>${escapeHtml(note.subject || "Untitled note")}</h4>
-              <p>${escapeHtml(note.authorRole || "Shared user")} · ${escapeHtml(note.createdAt ? formatDashboardDate(note.createdAt, true) : "Just now")}</p>
-            </div>
-            ${showDelete && note.canDelete ? `
-              <button class="shared-note-delete" type="button" data-shared-note-delete="${escapeHtml(note.id)}" aria-label="Delete note">Delete</button>
-            ` : ""}
-          </div>
-          <p class="shared-note-content">${escapeHtml(note.content)}</p>
-        </article>
-      `).join("")}
+      ${roots.map((note) => renderSharedNoteCard(note, { showDelete, showReply }, childrenByParent)).join("")}
     </div>
   `;
 }
@@ -4556,7 +4658,7 @@ function renderRecordSharedNotesSection(tableKey, recordId) {
         <h3>Notes</h3>
       </div>
       ${error ? `<div class="shared-notes-error">${escapeHtml(error)}</div>` : ""}
-      ${loading ? `<div class="shared-notes-empty">Loading notes...</div>` : renderSharedNotesList(notes)}
+      ${loading ? `<div class="shared-notes-empty">Loading notes...</div>` : renderSharedNotesList(notes, { showDelete: true, showReply: true })}
     </section>
   `;
 }
@@ -5184,7 +5286,7 @@ function renderSharedDetailPage() {
         <div class="detail-linked-head">
           <h3>Notes</h3>
         </div>
-        ${renderSharedNotesList(bundle.notes, { showDelete: true })}
+        ${renderSharedNotesList(bundle.notes, { showDelete: true, showReply: true })}
       </section>
     </div>
   `;
@@ -5234,28 +5336,31 @@ function closeSharedNoteModal() {
   document.body.classList.remove("modal-open");
 }
 
-function openSharedNoteModal() {
+function openSharedNoteModal({ parentNoteId = "", parentSubject = "" } = {}) {
+  const isReply = Boolean(parentNoteId);
   closeSharedNoteModal();
   document.body.insertAdjacentHTML("beforeend", `
     <div class="share-overlay modal open" data-shared-note-overlay aria-hidden="false">
       <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="shared-note-title">
         <div class="modal-head">
           <div>
-            <h2 id="shared-note-title">Add note</h2>
-            <p>Shared users can add notes, but cannot edit main records.</p>
+            <h2 id="shared-note-title">${isReply ? "Reply to note" : "Add note"}</h2>
+            <p>${isReply ? `Replying to ${escapeHtml(parentSubject || "this note")}.` : "Shared users can add notes, but cannot edit main records."}</p>
           </div>
           <button class="close-button" type="button" data-shared-note-close aria-label="Close">×</button>
         </div>
         <form class="share-form" data-shared-note-form>
+          ${isReply ? "" : `
+            <label>
+              <span>Subject</span>
+              <input type="text" data-shared-note-subject required maxlength="180" />
+            </label>
+          `}
           <label>
-            <span>Subject</span>
-            <input type="text" data-shared-note-subject required maxlength="180" />
-          </label>
-          <label>
-            <span>Content</span>
+            <span>${isReply ? "Reply" : "Content"}</span>
             <textarea data-shared-note-content required rows="5" maxlength="5000"></textarea>
           </label>
-          <button class="save-button" type="submit">Submit note</button>
+          <button class="save-button" type="submit">${isReply ? "Submit reply" : "Submit note"}</button>
           <p class="form-message" data-shared-note-message aria-live="polite"></p>
         </form>
       </div>
@@ -5263,7 +5368,7 @@ function openSharedNoteModal() {
   `);
   document.body.classList.add("modal-open");
   const overlay = document.querySelector("[data-shared-note-overlay]");
-  overlay.querySelector("[data-shared-note-subject]")?.focus();
+  (overlay.querySelector("[data-shared-note-subject]") ?? overlay.querySelector("[data-shared-note-content]"))?.focus();
   overlay.querySelectorAll("[data-shared-note-close]").forEach((button) => {
     button.addEventListener("click", closeSharedNoteModal);
   });
@@ -5278,17 +5383,21 @@ function openSharedNoteModal() {
     submitButton.textContent = "Saving...";
     message.textContent = "";
     try {
-      await addSharedNote(
-        overlay.querySelector("[data-shared-note-subject]").value,
-        overlay.querySelector("[data-shared-note-content]").value,
-      );
+      if (isReply) {
+        await addSharedNoteReply(parentNoteId, overlay.querySelector("[data-shared-note-content]").value);
+      } else {
+        await addSharedNote(
+          overlay.querySelector("[data-shared-note-subject]").value,
+          overlay.querySelector("[data-shared-note-content]").value,
+        );
+      }
       closeSharedNoteModal();
     } catch (error) {
       console.error("Shared note save failed", error);
-      message.textContent = `Note failed: ${error?.message ?? "Unknown error"}`;
+      message.textContent = `${isReply ? "Reply" : "Note"} failed: ${error?.message ?? "Unknown error"}`;
     } finally {
       submitButton.disabled = false;
-      submitButton.textContent = "Submit note";
+      submitButton.textContent = isReply ? "Submit reply" : "Submit note";
     }
   });
 }
@@ -5315,7 +5424,7 @@ function bindSharedPageEvents() {
     button.addEventListener("click", async () => {
       const approved = await openConfirmDialog({
         title: "Delete note?",
-        message: "Delete your note from this shared record?",
+        message: "Delete this note from the shared record? Replies under it will also be removed.",
         confirmLabel: "Delete",
       });
       if (!approved) return;
@@ -5324,6 +5433,102 @@ function bindSharedPageEvents() {
       } catch (error) {
         window.alert(error?.message ?? "Note delete failed.");
       }
+    });
+  });
+  el.heroPanel.querySelectorAll("[data-shared-note-reply]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const noteId = button.dataset.sharedNoteReply;
+      const note = state.sharedBundle?.notes?.find((item) => item.id === noteId) ?? null;
+      openSharedNoteModal({
+        parentNoteId: noteId,
+        parentSubject: note?.subject || "this note",
+      });
+    });
+  });
+}
+
+function openRecordSharedNoteReplyModal(tableKey, recordId, noteId, parentSubject = "") {
+  closeSharedNoteModal();
+  document.body.insertAdjacentHTML("beforeend", `
+    <div class="share-overlay modal open" data-shared-note-overlay aria-hidden="false">
+      <div class="share-dialog" role="dialog" aria-modal="true" aria-labelledby="record-shared-note-title">
+        <div class="modal-head">
+          <div>
+            <h2 id="record-shared-note-title">Reply to note</h2>
+            <p>Replying to ${escapeHtml(parentSubject || "this note")}.</p>
+          </div>
+          <button class="close-button" type="button" data-shared-note-close aria-label="Close">×</button>
+        </div>
+        <form class="share-form" data-record-shared-note-reply-form>
+          <label>
+            <span>Reply</span>
+            <textarea data-record-shared-note-reply-content required rows="5" maxlength="5000"></textarea>
+          </label>
+          <button class="save-button" type="submit">Submit reply</button>
+          <p class="form-message" data-record-shared-note-message aria-live="polite"></p>
+        </form>
+      </div>
+    </div>
+  `);
+  document.body.classList.add("modal-open");
+  const overlay = document.querySelector("[data-shared-note-overlay]");
+  overlay.querySelector("[data-record-shared-note-reply-content]")?.focus();
+  overlay.querySelectorAll("[data-shared-note-close]").forEach((button) => {
+    button.addEventListener("click", closeSharedNoteModal);
+  });
+  overlay.addEventListener("click", (event) => {
+    if (event.target === overlay) closeSharedNoteModal();
+  });
+  overlay.querySelector("[data-record-shared-note-reply-form]")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const message = overlay.querySelector("[data-record-shared-note-message]");
+    const submitButton = overlay.querySelector("button[type='submit']");
+    submitButton.disabled = true;
+    submitButton.textContent = "Saving...";
+    message.textContent = "";
+    try {
+      await addRecordSharedNoteReply(
+        tableKey,
+        recordId,
+        noteId,
+        overlay.querySelector("[data-record-shared-note-reply-content]").value,
+      );
+      closeSharedNoteModal();
+    } catch (error) {
+      console.error("Record shared note reply failed", error);
+      message.textContent = `Reply failed: ${error?.message ?? "Unknown error"}`;
+    } finally {
+      submitButton.disabled = false;
+      submitButton.textContent = "Submit reply";
+    }
+  });
+}
+
+function bindRecordSharedNoteActions(tableKey, recordId) {
+  if (!canShareRecord(tableKey)) return;
+  const notes = state.recordSharedNotes[getRecordSharedNotesKey(tableKey, recordId)] ?? [];
+
+  el.heroPanel.querySelectorAll("[data-shared-note-delete]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const approved = await openConfirmDialog({
+        title: "Delete note?",
+        message: "Delete this note from the record? Replies under it will also be removed.",
+        confirmLabel: "Delete",
+      });
+      if (!approved) return;
+      try {
+        await deleteRecordSharedNote(tableKey, recordId, button.dataset.sharedNoteDelete);
+      } catch (error) {
+        window.alert(error?.message ?? "Note delete failed.");
+      }
+    });
+  });
+
+  el.heroPanel.querySelectorAll("[data-shared-note-reply]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const noteId = button.dataset.sharedNoteReply;
+      const note = notes.find((item) => item.id === noteId) ?? null;
+      openRecordSharedNoteReplyModal(tableKey, recordId, noteId, note?.subject || "this note");
     });
   });
 }
@@ -7265,6 +7470,7 @@ function renderHeroPanel() {
     el.heroPanel.innerHTML = renderRecordDetail(detail.table, detail.record);
     restoreDetailTreeScroll();
     ensureRecordSharedNotes(detail.table.key, detail.record.id);
+    bindRecordSharedNoteActions(detail.table.key, detail.record.id);
     el.heroPanel.querySelectorAll("[data-detail-action]").forEach((button) => {
       button.addEventListener("click", async () => {
         const action = button.dataset.detailAction;
