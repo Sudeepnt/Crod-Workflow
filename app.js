@@ -9832,6 +9832,14 @@ function bindEvents() {
     await loginApp(String(el.loginPassword?.value ?? "").trim());
   });
 
+  el.loginPasswordToggle?.addEventListener("click", () => {
+    const isVisible = el.loginPassword?.type === "text";
+    if (!el.loginPassword) return;
+    el.loginPassword.type = isVisible ? "password" : "text";
+    el.loginPasswordToggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    el.loginPasswordToggle.setAttribute("aria-pressed", isVisible ? "false" : "true");
+  });
+
   el.homeButton.addEventListener("click", () => {
     state.activeNav = "dashboard";
     state.search = "";
@@ -10066,6 +10074,7 @@ async function init() {
   el.loginScreen = document.getElementById("login-screen");
   el.loginForm = document.getElementById("login-form");
   el.loginPassword = document.getElementById("login-password");
+  el.loginPasswordToggle = document.getElementById("login-password-toggle");
   el.loginError = document.getElementById("login-error");
   el.layout = document.querySelector(".layout");
   el.sidebarNav = document.getElementById("sidebar-nav");

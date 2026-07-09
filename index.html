@@ -13,7 +13,15 @@
         <form id="login-form" class="login-form" autocomplete="off">
           <label class="login-field">
             <span>Password</span>
-            <input id="login-password" name="password" type="text" value="atit1234" placeholder="Enter password" required />
+            <span class="login-password-wrap">
+              <input id="login-password" name="password" type="password" value="atit1234" placeholder="Enter password" required />
+              <button id="login-password-toggle" class="login-password-toggle" type="button" aria-label="Show password" aria-pressed="false">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M1.5 12s3.8-6 10.5-6 10.5 6 10.5 6-3.8 6-10.5 6S1.5 12 1.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                  <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+                </svg>
+              </button>
+            </span>
           </label>
           <button class="login-button" type="submit">Login</button>
           <p id="login-error" class="login-error" aria-live="polite"></p>
