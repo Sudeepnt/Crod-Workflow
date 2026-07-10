@@ -174,6 +174,8 @@ const FORM_CONFIG_KEY = "default";
 const FORM_CONFIG_VERSION = 1;
 const ADMIN_USERS_TABLE = "admin_users";
 const AUDIT_LOGS_TABLE = "app_audit_logs";
+const KEEPALIVE_TABLE = "app_keepalive_pings";
+const KEEPALIVE_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000;
 const SHARE_ROUTE_PARAM = "share";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
 const APP_SESSION_KEY = "atit.appAuthenticated";
@@ -1439,6 +1441,52 @@ function createAuditLogId() {
   return `aud_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function getStoredKeepalivePingAt() {
+  try {
+    return Number(globalThis.localStorage?.getItem(APP_KEEPALIVE_KEY) ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+function setStoredKeepalivePingAt(timestamp) {
+  try {
+    if (timestamp > 0) globalThis.localStorage?.setItem(APP_KEEPALIVE_KEY, String(timestamp));
+    else globalThis.localStorage?.removeItem(APP_KEEPALIVE_KEY);
+  } catch {
+    // Ignore storage failures and keep runtime behavior unchanged.
+  }
+}
+
+function shouldSendKeepalivePing() {
+  const lastPingAt = getStoredKeepalivePingAt();
+  return !lastPingAt || (Date.now() - lastPingAt) >= KEEPALIVE_INTERVAL_MS;
+}
+
+async function sendKeepalivePing({ source = "app-boot", force = false } = {}) {
+  if (!supabaseClient || (!force && !shouldSendKeepalivePing())) return false;
+
+  try {
+    const { error: rpcError } = await supabaseClient.rpc("send_keepalive_ping", {
+      p_message: "hi",
+      p_source: source,
+    });
+
+    if (rpcError) {
+      const { error: insertError } = await supabaseClient
+        .from(KEEPALIVE_TABLE)
+        .insert({ message: "hi", source });
+      if (insertError) throw insertError;
+    }
+
+    setStoredKeepalivePingAt(Date.now());
+    return true;
+  } catch (error) {
+    console.warn("Supabase keepalive ping failed", error);
+    return false;
+  }
+}
+
 function mapAuditLogFromSupabase(row = {}) {
   return {
     id: String(row.id ?? ""),
@@ -1604,6 +1652,7 @@ let remoteRealtimeChannel = null;
 const MOBILE_BREAKPOINT = 820;
 const GOOGLE_MAPS_API_KEY_STORAGE_KEY = "atit.googleMapsApiKey";
 const APP_SESSION_USER_KEY = "atit.appUserId";
+const APP_KEEPALIVE_KEY = "atit.lastKeepalivePingAt";
 const SHARED_NOTE_AUTHOR_PREFIX = "atit.sharedNoteAuthor.";
 const REMOTE_REFRESH_DEBOUNCE_MS = 350;
 const googleMapsRuntime = {
@@ -10139,6 +10188,7 @@ async function init() {
     }
   }
   clearLegacyWorkflowStorage();
+  void sendKeepalivePing({ source: "app-boot" });
   if (state.isAuthenticated) {
     try {
       await refreshRemoteData({ syncHierarchy: true, render: false });
