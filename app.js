@@ -166,8 +166,8 @@ const tables = [
   },
 ];
 
-const SUPABASE_URL = "https://enozxcriirsytgrjcxbt.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tULBf6UJrmdpNRdeb5SQmw_VOAoUhpr";
+const SUPABASE_URL = "https://plwipoqvcqrclkaytujn.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qeNG7yC8yra-FYSO68zLBg_gSyR9iS0";
 const APP_TIMEZONE = "Asia/Kolkata";
 const FORM_CONFIG_TABLE = "app_form_configs";
 const FORM_CONFIG_KEY = "default";
