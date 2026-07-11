@@ -2,7 +2,7 @@
   "name": "workflow",
   "private": true,
   "version": "1.0.0",
-  "description": "ATIT workflow shell",
+  "description": "Gattabara Games workflow shell",
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.2"

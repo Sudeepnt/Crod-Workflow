@@ -1,6 +1,6 @@
-# ATIT Operating System MVP
+# Workflow Tool MVP
 
-Monochrome internal workflow shell for the ATIT client.
+Monochrome internal workflow shell prepared for client-specific branding and data.
 
 ## What is included
 
@@ -9,12 +9,14 @@ Monochrome internal workflow shell for the ATIT client.
 - Founder / Partner / Employee dashboard views
 - Project workspace and task workspace
 - White / black UI only
-- No backend connection yet
+- Supabase-backed frontend with client-specific config in `config.js`
 
 ## Run locally
 
 Open `index.html` in a browser or serve the folder with any static server.
 
-## Next step
+Set `supabaseUrl` and `supabasePublishableKey` in `config.js` before logging in.
 
-Wire the data layer to Supabase once the client confirms the schema and permissions model.
+## Current state
+
+The previous Supabase project credentials were removed from source. The app now stays disconnected until new Supabase credentials are added to `config.js`.
