@@ -2697,6 +2697,7 @@ input[type="search"] {
   padding-top: 18px;
   display: grid;
   gap: 18px;
+  align-content: start;
 }
 
 .people-empty.records-empty-state {
@@ -2781,6 +2782,7 @@ input[type="search"] {
   border-radius: 14px;
   overflow: hidden;
   background: #ffffff;
+  align-self: start;
 }
 
 .people-group-head {
