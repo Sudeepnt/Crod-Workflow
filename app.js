@@ -3,18 +3,18 @@ const tables = [
     key: "ventures",
     title: "Ventures",
     singular: "Venture",
-    summary: "Companies, SPVs, clients, partners",
+    summary: "Studios, publishers, clients, and partners",
     listColumns: ["name", "type", "status", "verticals", "created_at"],
     fields: [
       { name: "name", label: "Name", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "type", label: "Type", type: "select", options: ["Self", "SPV", "Subsidiary", "Client", "Partner", "Vendor", "JV", "Prospect"], required: true },
-      { name: "status", label: "Status", type: "select", options: ["Prospect", "Active", "Dormant", "Closed"] },
-      { name: "verticals", label: "Verticals", type: "text", placeholder: "Comma separated" },
-      { name: "entity_form", label: "Entity form", type: "select", options: ["PvtLtd", "LLP", "Proprietorship", "Trust", "Other"] },
-      { name: "reg_no", label: "Reg no.", type: "text", placeholder: "CIN / LLPIN / GST" },
+      { name: "date", label: "Start date", type: "date" },
+      { name: "type", label: "Type", type: "select", options: ["Internal Studio", "Client", "Publisher", "Partner Studio", "Vendor", "Contractor Studio", "Investor", "Prospect"], required: true },
+      { name: "status", label: "Status", type: "select", options: ["Prospect", "Onboarding", "Active", "Paused", "Archived"] },
+      { name: "verticals", label: "Game focus", type: "text", placeholder: "Mobile, PC, Console, Web3" },
+      { name: "entity_form", label: "Legal entity", type: "select", options: ["Private Limited", "LLP", "Partnership", "Sole Proprietorship", "Other"] },
+      { name: "reg_no", label: "Registration / tax ID", type: "text", placeholder: "CIN / GST / Tax ID" },
       { name: "primary_contact", label: "Primary contact", type: "text" },
-      { name: "tags", label: "Tags", type: "text", placeholder: "Comma separated" },
+      { name: "tags", label: "Tags", type: "text", placeholder: "Genres, platforms, IPs" },
     ],
   },
   {
@@ -28,8 +28,8 @@ const tables = [
       { name: "email", label: "Email", type: "email" },
       { name: "phone", label: "Phone", type: "tel" },
       { name: "venture", label: "Venture", type: "text" },
-      { name: "type", label: "Type", type: "select", options: ["Founder", "Investor", "Partner", "Client", "Vendor", "Consultant", "Contractor", "Employee"], required: true },
-      { name: "role_title", label: "Role title", type: "select", options: ["Managing Director", "Project Manager", "Site Engineer", "Architect", "Client SPOC", "Finance Head", "Vendor Coordinator", "Legal Consultant"] },
+      { name: "type", label: "Type", type: "select", options: ["Founder", "Producer", "Employee", "Client", "Publisher", "Partner", "Investor", "Contractor", "Vendor", "Consultant", "Freelancer"], required: true },
+      { name: "role_title", label: "Role title", type: "text", placeholder: "Game Designer, Animator, Producer, Art Director, Unity Developer" },
       { name: "status", label: "Status", type: "select", options: ["Active", "Inactive"], value: "Active" },
       { name: "access_level", label: "Access level", type: "select", options: ["Founder", "Partner", "Employee", "Client", "Contractor"] },
     ],
@@ -44,9 +44,9 @@ const tables = [
       { name: "name", label: "Name", type: "text", required: true },
       { name: "venture", label: "Venture", type: "text" },
       { name: "vertical", label: "Vertical", type: "text" },
-      { name: "type", label: "Type", type: "select", options: ["Development", "Marketing", "Acquisition", "Leasing", "Infra", "CapitalRaise", "Logistics", "Internal"] },
+      { name: "type", label: "Type", type: "select", options: ["Game Development", "Animation", "Art Production", "Co-Development", "Prototype", "LiveOps", "Internal IP", "Client Production", "Strategy"] },
       { name: "asset", label: "Asset", type: "text" },
-      { name: "stage", label: "Stage", type: "select", options: ["Origination", "Scoping", "Mandate", "Execution", "Delivery", "Closure"] },
+      { name: "stage", label: "Stage", type: "select", options: ["Discovery", "Brief", "Pre-Production", "Production", "Review", "Delivery", "Support", "Close"] },
       { name: "status", label: "Status", type: "select", options: ["Prospect", "Active", "On-Hold", "Blocked", "Completed", "Cancelled"] },
       { name: "start_date", label: "Start date", type: "date" },
       { name: "target_date", label: "Target date", type: "date" },
@@ -91,7 +91,7 @@ const tables = [
       { name: "related_assets", label: "Assets", type: "select" },
       { name: "related_events", label: "Events", type: "select" },
       { name: "related_transactions", label: "Transactions", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Note", "Report", "Agreement", "Drawing", "Photo", "Model", "Proposal", "Research", "Comms"] },
+      { name: "type", label: "Type", type: "select", options: ["Brief", "GDD", "Art Bible", "Script", "Storyboard", "Feedback", "Proposal", "Agreement", "Build Notes", "Research", "Report", "Comms", "Pitch Deck"] },
       { name: "body", label: "Body", type: "textarea" },
       { name: "file_ref", label: "File ref", type: "text" },
       { name: "version", label: "Version", type: "number" },
@@ -102,22 +102,24 @@ const tables = [
   },
   {
     key: "assets",
-    title: "Assets",
+    title: "Game's Assets",
     singular: "Asset",
-    summary: "Buildings, land, and units",
-    listColumns: ["name", "type", "status", "owner_ventures", "created_at"],
+    summary: "Builds, characters, environments, rigs, audio, tools, and source files",
+    listColumns: ["name", "type", "status", "project", "created_at"],
     fields: [
-      { name: "name", label: "Name", type: "text", required: true },
-      { name: "date", label: "Date", type: "date" },
-      { name: "venture", label: "Venture", type: "select", required: true },
-      { name: "project", label: "Project", type: "select" },
-      { name: "task", label: "Task", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Building", "Land", "Unit", "Theatre", "Warehouse", "Mixed"] },
-      { name: "address", label: "Address", type: "textarea" },
-      { name: "area", label: "Area", type: "text" },
-      { name: "unit", label: "Unit", type: "text" },
-      { name: "owner_ventures", label: "Owner ventures", type: "text" },
-      { name: "status", label: "Status", type: "select", options: ["Under-Acquisition", "Owned", "Under-Development", "Operational", "Disposed"] },
+      { name: "name", label: "Name", type: "text", required: true, placeholder: "Main Character Rig, Forest Level, Combat Prototype Build" },
+      { name: "project", label: "Project", type: "select", required: true },
+      { name: "type", label: "Type", type: "select", options: ["Game IP", "Character", "Environment", "Prop", "Animation", "Rig", "Build", "Level", "UI Kit", "Audio", "VFX", "Source File", "Art Pack", "Tool"], required: true },
+      { name: "engine", label: "Engine", type: "select", options: ["Unity", "Unreal", "Roblox", "Blender", "Maya", "Godot", "Other"] },
+      { name: "format", label: "Format", type: "select", options: ["FBX", "Blend", "Maya", "PNG", "PSD", "MP4", "WAV", "UnityPackage", "UnrealAsset", "GitRepo", "Figma", "Other"] },
+      { name: "version", label: "Version", type: "text", placeholder: "v1, v2, v3, etc." },
+      { name: "status", label: "Status", type: "select", options: ["Concept", "In-Production", "In-Review", "Approved", "Delivered", "Archived"] },
+      { name: "file_ref", label: "File ref / link", type: "text", placeholder: "File, folder, repo, build, or design link" },
+      { name: "owner", label: "Owner", type: "select" },
+      { name: "reviewer", label: "Reviewer", type: "select" },
+      { name: "due_date", label: "Due date", type: "date" },
+      { name: "permission", label: "Permission", type: "select", options: ["Internal", "Restricted", "Client-visible", "Contractor-visible"] },
+      { name: "tags", label: "Tags", type: "text", placeholder: "character, prototype, enemy, UI, cinematic, trailer, build" },
     ],
   },
   {
@@ -132,11 +134,11 @@ const tables = [
       { name: "venture", label: "Venture", type: "select", required: true },
       { name: "project", label: "Project", type: "select" },
       { name: "task", label: "Task", type: "select" },
-      { name: "type", label: "Type", type: "select", options: ["Meeting", "FieldVisit", "Call", "Inspection", "Other"] },
+      { name: "type", label: "Type", type: "select", options: ["Meeting", "Call", "Review", "Playtest", "Milestone", "Other"] },
       { name: "start", label: "Start", type: "datetime-local" },
       { name: "end", label: "End", type: "datetime-local" },
       { name: "participants", label: "Participants", type: "text", placeholder: "Comma separated people" },
-      { name: "location", label: "Location", type: "select", options: ["Google Meet", "Zoom", "Discord", "Office", "Client Location"] },
+      { name: "location", label: "Location", type: "select", options: ["Google Meet", "Zoom", "Discord", "Office", "Publisher Call"] },
       { name: "summary", label: "Summary", type: "textarea" },
       { name: "calendar_ref", label: "Calendar ref", type: "text" },
     ],
@@ -192,298 +194,298 @@ const data = {
   ventures: [
     {
       id: "ven_1",
-      name: "v1",
-      type: "Self",
+      name: "Gattabara Games",
+      type: "Internal Studio",
       status: "Active",
-      verticals: ["core"],
+      verticals: ["PC", "Console", "Action Adventure"],
       date: "2026-06-28",
-      entity_form: "PvtLtd",
+      entity_form: "Private Limited",
     },
     {
       id: "ven_2",
-      name: "v2",
-      type: "SPV",
+      name: "Moonforge Labs",
+      type: "Partner Studio",
       status: "Active",
-      verticals: ["asset"],
+      verticals: ["Co-Development", "Multiplayer"],
       date: "2026-06-28",
       entity_form: "LLP",
     },
     {
       id: "ven_3",
-      name: "ATit",
-      type: "Self",
-      status: "Active",
-      verticals: ["core"],
+      name: "PixelPeak Publishing",
+      type: "Publisher",
+      status: "Onboarding",
+      verticals: ["Publishing", "Marketing", "Distribution"],
       date: "2026-06-28",
-      entity_form: "PvtLtd",
+      entity_form: "Private Limited",
     },
   ],
   people: [
     {
       id: "ppl_1",
-      name: "v1_p1",
+      name: "Sudeep N",
       type: "Founder",
-      email: "v1_p1@atit.com",
+      email: "sudeep@gattabara.games",
       phone: "9000000001",
-      venture: "v1",
-      role_title: "Managing Director",
+      venture: "Gattabara Games",
+      role_title: "Founder / Creative Director",
       access_level: "Founder",
       status: "Active",
     },
     {
       id: "ppl_2",
-      name: "v1_p2",
-      type: "Partner",
-      email: "v1_p2@atit.com",
+      name: "Utsav",
+      type: "Producer",
+      email: "utsav@gattabara.games",
       phone: "9000000002",
-      venture: "v1",
-      role_title: "Project Manager",
+      venture: "Gattabara Games",
+      role_title: "Producer",
       access_level: "Partner",
       status: "Active",
     },
     {
       id: "ppl_3",
-      name: "v2_p1",
+      name: "Aditya",
       type: "Partner",
-      email: "v2_p1@atit.com",
+      email: "aditya@gattabara.games",
       phone: "9000000003",
-      venture: "v2",
-      role_title: "Finance Head",
+      venture: "Gattabara Games",
+      role_title: "Technical Director",
       access_level: "Partner",
       status: "Active",
     },
     {
       id: "ppl_4",
-      name: "v1_p3",
+      name: "Mira Sol",
       type: "Employee",
-      email: "v1_p3@atit.com",
+      email: "mira@gattabara.games",
       phone: "9000000004",
-      venture: "v1",
-      role_title: "Site Engineer",
+      venture: "Gattabara Games",
+      role_title: "Lead Character Artist",
       access_level: "Employee",
       status: "Active",
     },
     {
       id: "ppl_5",
-      name: "v1_p4",
+      name: "Dev Menon",
       type: "Employee",
-      email: "v1_p4@atit.com",
+      email: "dev@gattabara.games",
       phone: "9000000005",
-      venture: "v1",
-      role_title: "Architect",
+      venture: "Gattabara Games",
+      role_title: "Gameplay Programmer",
       access_level: "Employee",
       status: "Active",
     },
     {
       id: "ppl_6",
-      name: "v2_p2",
-      type: "Contractor",
-      email: "v2_p2@atit.com",
-      phone: "9000000006",
-      venture: "v2",
-      role_title: "Vendor Coordinator",
-      access_level: "Contractor",
-      status: "Active",
-    },
-    {
-      id: "ppl_7",
-      name: "at_p1",
-      type: "Founder",
-      email: "at_p1@atit.com",
-      phone: "9000000007",
-      venture: "ATit",
-      role_title: "Managing Director",
-      access_level: "Founder",
-      status: "Active",
-    },
-    {
-      id: "ppl_8",
-      name: "at_p2",
+      name: "Rhea Stone",
       type: "Partner",
-      email: "at_p2@atit.com",
-      phone: "9000000008",
-      venture: "ATit",
-      role_title: "Project Manager",
+      email: "rhea@moonforge.dev",
+      phone: "9000000006",
+      venture: "Moonforge Labs",
+      role_title: "Co-Dev Lead",
       access_level: "Partner",
       status: "Active",
     },
     {
+      id: "ppl_7",
+      name: "Jin Park",
+      type: "Contractor",
+      email: "jin@moonforge.dev",
+      phone: "9000000007",
+      venture: "Moonforge Labs",
+      role_title: "Multiplayer Engineer",
+      access_level: "Contractor",
+      status: "Active",
+    },
+    {
+      id: "ppl_8",
+      name: "Leah Frost",
+      type: "Publisher",
+      email: "leah@pixelpeak.com",
+      phone: "9000000008",
+      venture: "PixelPeak Publishing",
+      role_title: "Publishing Producer",
+      access_level: "Client",
+      status: "Active",
+    },
+    {
       id: "ppl_9",
-      name: "at_p3",
-      type: "Employee",
-      email: "at_p3@atit.com",
+      name: "Omar Vale",
+      type: "Consultant",
+      email: "omar@pixelpeak.com",
       phone: "9000000009",
-      venture: "ATit",
-      role_title: "Architect",
-      access_level: "Employee",
+      venture: "PixelPeak Publishing",
+      role_title: "Go-To-Market Consultant",
+      access_level: "Client",
       status: "Active",
     },
   ],
   projects: [
     {
       id: "prj_1",
-      name: "p1",
-      venture: "v1",
-      vertical: "core",
-      type: "Development",
-      stage: "Execution",
+      name: "Project Emberfall",
+      venture: "Gattabara Games",
+      vertical: "Action Adventure",
+      type: "Game Development",
+      stage: "Production",
       status: "Active",
       start_date: "2026-06-28",
       target_date: "2026-07-12",
-      lead: "v1_p1",
+      lead: "Sudeep N",
       client_shareable: true,
     },
     {
       id: "prj_2",
-      name: "p2",
-      venture: "v1",
-      vertical: "ops",
-      type: "Marketing",
-      stage: "Scoping",
+      name: "Neon Brawl Launch Assets",
+      venture: "Gattabara Games",
+      vertical: "Marketing",
+      type: "Art Production",
+      stage: "Review",
       status: "Active",
       start_date: "2026-06-28",
       target_date: "2026-07-20",
-      lead: "v1_p2",
+      lead: "Utsav",
       client_shareable: false,
     },
     {
       id: "prj_3",
-      name: "p3",
-      venture: "v2",
-      vertical: "asset",
-      type: "Internal",
-      stage: "Origination",
+      name: "Cloud Sprint Prototype",
+      venture: "Moonforge Labs",
+      vertical: "Multiplayer",
+      type: "Prototype",
+      stage: "Pre-Production",
       status: "Blocked",
       start_date: "2026-06-28",
       target_date: "2026-07-31",
-      lead: "v2_p1",
+      lead: "Rhea Stone",
       client_shareable: false,
     },
   ],
   tasks: [
     {
       id: "tsk_1",
-      title: "t1",
-      venture: "v1",
-      project: "p1",
+      title: "Lock vertical slice combat loop",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
       status: "To-Do",
       priority: "High",
-      owner: "v1_p3",
-      assignees: ["at_p1", "at_p2"],
+      owner: "Aditya",
+      assignees: ["Sudeep N", "Dev Menon"],
       due_date: "2026-07-02",
       estimate: "2h",
       time_logged: "0h",
     },
     {
       id: "tsk_2",
-      title: "t2",
-      venture: "v1",
-      project: "p1",
+      title: "Polish forest biome lighting",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
       status: "In-Progress",
       priority: "Medium",
-      owner: "v1_p4",
+      owner: "Mira Sol",
       due_date: "2026-07-04",
       estimate: "4h",
       time_logged: "1h",
     },
     {
       id: "tsk_3",
-      title: "t3",
-      venture: "v1",
-      project: "p2",
+      title: "Review trailer storyboard",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
       status: "Blocked",
       priority: "High",
-      owner: "v1_p3",
+      owner: "Utsav",
       due_date: "2026-07-08",
       estimate: "3h",
       time_logged: "0h",
     },
     {
       id: "tsk_4",
-      title: "t4",
-      venture: "v2",
-      project: "p3",
+      title: "Prototype lobby sync",
+      venture: "Moonforge Labs",
+      project: "Cloud Sprint Prototype",
       status: "Backlog",
       priority: "Low",
-      owner: "v2_p2",
+      owner: "Jin Park",
       due_date: "2026-07-15",
       estimate: "1h",
       time_logged: "0h",
     },
     {
       id: "tsk_5",
-      title: "t1.1",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t1",
+      title: "Tune dodge cancel window",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      parent_task: "Lock vertical slice combat loop",
       status: "To-Do",
       priority: "Medium",
-      owner: "at_p1",
+      owner: "Dev Menon",
       due_date: "2026-07-01",
       estimate: "1h",
       time_logged: "0h",
     },
     {
       id: "tsk_6",
-      title: "t1.2",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t1",
+      title: "Finalize enemy hit reactions",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      parent_task: "Lock vertical slice combat loop",
       status: "Backlog",
       priority: "Low",
-      owner: "at_p2",
+      owner: "Mira Sol",
       due_date: "2026-07-02",
       estimate: "1h",
       time_logged: "0h",
     },
     {
       id: "tsk_7",
-      title: "t2.1",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t2",
+      title: "Balance moonlit fog pass",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      parent_task: "Polish forest biome lighting",
       status: "In-Progress",
       priority: "Medium",
-      owner: "v1_p4",
+      owner: "Mira Sol",
       due_date: "2026-07-03",
       estimate: "2h",
       time_logged: "1h",
     },
     {
       id: "tsk_8",
-      title: "t2.2",
-      venture: "v1",
-      project: "p1",
-      parent_task: "t2",
+      title: "Export LUT variations",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      parent_task: "Polish forest biome lighting",
       status: "To-Do",
       priority: "Low",
-      owner: "at_p1",
+      owner: "Mira Sol",
       due_date: "2026-07-04",
       estimate: "1h",
       time_logged: "0h",
     },
     {
       id: "tsk_9",
-      title: "t3.1",
-      venture: "v1",
-      project: "p2",
-      parent_task: "t3",
+      title: "Collect publisher feedback",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
+      parent_task: "Review trailer storyboard",
       status: "Blocked",
       priority: "High",
-      owner: "v1_p3",
+      owner: "Utsav",
       due_date: "2026-07-06",
       estimate: "2h",
       time_logged: "0h",
     },
     {
       id: "tsk_10",
-      title: "t3.2",
-      venture: "v1",
-      project: "p2",
-      parent_task: "t3",
+      title: "Revise trailer shot order",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
+      parent_task: "Review trailer storyboard",
       status: "To-Do",
       priority: "Medium",
-      owner: "at_p2",
+      owner: "Utsav",
       due_date: "2026-07-07",
       estimate: "1h",
       time_logged: "0h",
@@ -492,43 +494,43 @@ const data = {
   documents: [
     {
       id: "doc_1",
-      title: "d1",
+      title: "Gattabara studio roadmap",
       date: "2026-06-28",
-      venture: "v1",
-      type: "Note",
-      body: "venture level",
+      venture: "Gattabara Games",
+      type: "Brief",
+      body: "Q3 roadmap covering prototype completion, publisher outreach, and vertical slice goals.",
       version: 1,
       status: "Draft",
-      links: ["v1"],
+      links: ["Gattabara Games"],
       permission: "Internal",
       tags: ["seed"],
     },
     {
       id: "doc_2",
-      title: "d2",
+      title: "Emberfall milestone agreement",
       date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
       type: "Agreement",
-      body: "project level",
+      body: "Milestone alignment for Emberfall vertical slice delivery.",
       version: 1,
       status: "Final",
-      links: ["p1"],
+      links: ["Project Emberfall"],
       permission: "Restricted",
       tags: ["seed"],
     },
     {
       id: "doc_3",
-      title: "d3",
+      title: "Trailer review notes",
       date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
+      task: "Review trailer storyboard",
       type: "Report",
-      body: "task level",
+      body: "Notes from the first publisher review round for launch trailer story beats.",
       version: 1,
       status: "Signed",
-      links: ["t1"],
+      links: ["Review trailer storyboard"],
       permission: "Client-visible",
       tags: ["seed"],
     },
@@ -536,213 +538,132 @@ const data = {
   events: [
     {
       id: "evt_1",
-      title: "e1",
+      title: "Weekly studio sync",
       date: "2026-06-28",
-      venture: "v1",
+      venture: "Gattabara Games",
       type: "Meeting",
       start: "2026-06-28T09:00",
       end: "2026-06-28T09:30",
-      participants: [],
-      location: "HQ",
-      summary: "venture level",
+      participants: ["Sudeep N", "Utsav", "Aditya"],
+      location: "Discord",
+      summary: "Studio-level planning for milestone priorities and staffing.",
       calendar_ref: "cal-v1",
     },
     {
       id: "evt_2",
-      title: "e2",
+      title: "Publisher feedback call",
       date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
       type: "Call",
       start: "2026-06-28T10:00",
       end: "2026-06-28T10:30",
-      participants: [],
-      location: "site",
-      summary: "project level",
+      participants: ["Utsav", "Leah Frost"],
+      location: "Google Meet",
+      summary: "Publisher call to review milestone footage and market positioning.",
       calendar_ref: "cal-p1",
     },
     {
       id: "evt_3",
-      title: "e3",
+      title: "Trailer storyboard review",
       date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      type: "Inspection",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
+      task: "Review trailer storyboard",
+      type: "Review",
       start: "2026-06-28T11:00",
       end: "2026-06-28T11:30",
-      participants: [],
-      location: "field",
-      summary: "task level",
+      participants: ["Utsav", "Mira Sol", "Omar Vale"],
+      location: "Office",
+      summary: "Review cut pacing, key art beats, and CTA sequence.",
       calendar_ref: "cal-t1",
     },
   ],
   assets: [
     {
       id: "ast_1",
-      name: "Indiranagar Corner Plot",
-      date: "2026-06-28",
-      venture: "v1",
-      type: "Land",
-      address: "100 Feet Road, Indiranagar, Bengaluru",
-      area: "1 ac",
-      unit: "lot",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
+      name: "Emberfall Hero Rig",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      type: "Rig",
+      engine: "Maya",
+      format: "FBX",
+      version: "v3",
+      status: "Approved",
+      file_ref: "drive://characters/emberfall/hero-rig-v3.fbx",
+      owner: "Mira Sol",
+      reviewer: "Aditya",
+      due_date: "2026-07-05",
+      permission: "Internal",
+      tags: "character, rig, hero",
     },
     {
       id: "ast_2",
-      name: "Whitefield Commerce Block",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      type: "Building",
-      address: "ITPL Main Road, Whitefield, Bengaluru",
-      area: "5000 sqft",
-      unit: "b1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Under-Development",
+      name: "Forest Combat Greybox",
+      venture: "Gattabara Games",
+      project: "Project Emberfall",
+      type: "Level",
+      engine: "Unity",
+      format: "UnityPackage",
+      version: "v5",
+      status: "In-Production",
+      file_ref: "repo://emberfall/levels/forest-combat-greybox",
+      owner: "Dev Menon",
+      reviewer: "Sudeep N",
+      due_date: "2026-07-08",
+      permission: "Internal",
+      tags: "level, greybox, combat",
     },
     {
       id: "ast_3",
-      name: "Jayanagar Residential Unit",
-      date: "2026-06-28",
-      venture: "v1",
-      project: "p1",
-      task: "t1",
-      type: "Unit",
-      address: "4th Block, Jayanagar, Bengaluru",
-      area: "1200 sqft",
-      unit: "u1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
+      name: "Neon Brawl Trailer Storyboard",
+      venture: "Gattabara Games",
+      project: "Neon Brawl Launch Assets",
+      type: "Source File",
+      engine: "Other",
+      format: "Figma",
+      version: "v2",
+      status: "In-Review",
+      file_ref: "figma://neon-brawl/trailer-storyboard",
+      owner: "Utsav",
+      reviewer: "Omar Vale",
+      due_date: "2026-07-06",
+      permission: "Client-visible",
+      tags: "trailer, storyboard, marketing",
     },
     {
       id: "ast_4",
-      name: "Koramangala Studio Block",
-      date: "2026-06-29",
-      venture: "v1",
-      project: "p1",
-      type: "Building",
-      address: "80 Feet Road, Koramangala, Bengaluru",
-      area: "4200 sqft",
-      unit: "k1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
+      name: "Cloud Sprint Lobby Prototype",
+      venture: "Moonforge Labs",
+      project: "Cloud Sprint Prototype",
+      type: "Build",
+      engine: "Unity",
+      format: "GitRepo",
+      version: "v1",
+      status: "Concept",
+      file_ref: "repo://cloud-sprint/lobby-prototype",
+      owner: "Jin Park",
+      reviewer: "Rhea Stone",
+      due_date: "2026-07-14",
+      permission: "Restricted",
+      tags: "prototype, build, multiplayer",
     },
     {
       id: "ast_5",
-      name: "HSR Layout Office Suite",
-      date: "2026-06-29",
-      venture: "v1",
-      project: "p2",
-      type: "Unit",
-      address: "27th Main Road, HSR Layout, Bengaluru",
-      area: "1800 sqft",
-      unit: "hsr-2a",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_6",
-      name: "Hebbal Logistics Yard",
-      date: "2026-06-30",
-      venture: "v2",
-      project: "p3",
-      type: "Warehouse",
-      address: "Outer Ring Road, Hebbal, Bengaluru",
-      area: "2.4 ac",
-      unit: "yard-1",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Development",
-    },
-    {
-      id: "ast_7",
-      name: "Electronic City Plant Parcel",
-      date: "2026-06-30",
-      venture: "v2",
-      project: "p3",
-      type: "Land",
-      address: "Phase 1, Electronic City, Bengaluru",
-      area: "3 ac",
-      unit: "ec-plot",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Acquisition",
-    },
-    {
-      id: "ast_8",
-      name: "Malleshwaram Heritage House",
-      date: "2026-07-01",
-      venture: "v1",
-      type: "Building",
-      address: "Sampige Road, Malleshwaram, Bengaluru",
-      area: "3200 sqft",
-      unit: "mh-1",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
-    },
-    {
-      id: "ast_9",
-      name: "Rajajinagar Mixed Block",
-      date: "2026-07-01",
-      venture: "v1",
-      project: "p2",
-      type: "Mixed",
-      address: "Chord Road, Rajajinagar, Bengaluru",
-      area: "7600 sqft",
-      unit: "rj-7",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_10",
-      name: "Sarjapur Growth Parcel",
-      date: "2026-07-01",
-      venture: "v2",
-      project: "p3",
-      type: "Land",
-      address: "Sarjapur Road, Bengaluru",
-      area: "1.8 ac",
-      unit: "sg-4",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Under-Development",
-    },
-    {
-      id: "ast_11",
-      name: "Yelahanka Storage Hub",
-      date: "2026-07-02",
-      venture: "v2",
-      type: "Warehouse",
-      address: "Bellary Road, Yelahanka, Bengaluru",
-      area: "6800 sqft",
-      unit: "yh-3",
-      owner_ventures: [{ venture: "v2", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_12",
-      name: "Marathahalli Tech Loft",
-      date: "2026-07-02",
-      venture: "v1",
-      project: "p1",
-      type: "Unit",
-      address: "Outer Ring Road, Marathahalli, Bengaluru",
-      area: "2100 sqft",
-      unit: "mt-9",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Operational",
-    },
-    {
-      id: "ast_13",
-      name: "Banashankari Corner Site",
-      date: "2026-07-02",
-      venture: "v1",
-      type: "Land",
-      address: "Banashankari 2nd Stage, Bengaluru",
-      area: "0.75 ac",
-      unit: "bs-2",
-      owner_ventures: [{ venture: "v1", stake: "100" }],
-      status: "Owned",
+      name: "Publisher Pitch Deck",
+      venture: "PixelPeak Publishing",
+      project: "Project Emberfall",
+      type: "Game IP",
+      engine: "Other",
+      format: "Figma",
+      version: "v4",
+      status: "Delivered",
+      file_ref: "drive://pitch/emberfall-publisher-deck-v4",
+      owner: "Leah Frost",
+      reviewer: "Sudeep N",
+      due_date: "2026-07-03",
+      permission: "Client-visible",
+      tags: "pitch, publisher, deck",
     },
   ],
   transactions: [
@@ -944,27 +865,27 @@ const data = {
     },
     {
       id: "txn_15",
-      reference: "rent-01",
+      reference: "infra-01",
       venture: "v2",
       direction: "Payable",
       amount: "45000",
       currency: "INR",
       status: "Overdue",
-      counterparty: "landlord",
+      counterparty: "cloud hosting vendor",
       project_asset: "a1",
       due_date: "2026-07-01",
       documents: [],
     },
     {
       id: "txn_16",
-      reference: "rent-02",
+      reference: "tools-02",
       venture: "v1",
       project: "p1",
       direction: "Payable",
       amount: "28000",
       currency: "INR",
       status: "Raised",
-      counterparty: "landlord",
+      counterparty: "software licenses",
       project_asset: "a2",
       due_date: "2026-07-10",
       documents: [],
@@ -1166,7 +1087,7 @@ const data = {
       items: [
         ["My queue", "3 open items, 1 already moving"],
         ["Logged time", "1 hour 10 minutes this week"],
-        ["Upcoming touchpoints", "2 meetings and 1 field visit ahead"],
+        ["Upcoming touchpoints", "2 meetings and 1 review session ahead"],
         ["Next move", "Clear the blocked rollout brief branch"],
       ],
     },
@@ -1637,10 +1558,10 @@ const relationFields = {
   project: { table: "projects", labelField: "name" },
   parent_task: { table: "tasks", labelField: "title" },
   owner: { table: "people", labelField: "name" },
+  reviewer: { table: "people", labelField: "name" },
   assignees: { table: "people", labelField: "name", multiple: true },
   depends_on: { table: "tasks", labelField: "title", multiple: true },
   external_shared_with: { table: "people", labelField: "name" },
-  owner_ventures: { table: "ventures", labelField: "name", multiple: true },
   task: { table: "tasks", labelField: "title" },
   participants: { table: "people", labelField: "name", multiple: true },
   links: { tables: ["ventures", "people", "projects", "tasks", "documents", "assets", "events", "transactions"], multiple: true },
@@ -1658,7 +1579,7 @@ const jsonColumnDefaults = {
   projects: { custom_fields: {} },
   tasks: { assignees: [], depends_on: [], custom_fields: {} },
   documents: { links: [], related_assets: [], related_events: [], related_transactions: [], tags: [], custom_fields: {} },
-  assets: { owner_ventures: [], custom_fields: {} },
+  assets: { custom_fields: {} },
   events: { participants: [], custom_fields: {} },
   transactions: { documents: [], custom_fields: {} },
 };
@@ -1669,7 +1590,7 @@ const remoteTableColumns = {
   projects: ["id", "name", "venture", "vertical", "type", "asset", "stage", "status", "start_date", "target_date", "lead", "client_shareable", "custom_fields", "created_at"],
   tasks: ["id", "title", "venture", "project", "parent_task", "status", "priority", "owner", "assignees", "depends_on", "due_date", "estimate", "time_logged", "external_shared_with", "custom_fields", "created_at"],
   documents: ["id", "title", "date", "venture", "project", "task", "type", "body", "file_ref", "version", "status", "links", "permission", "tags", "custom_fields", "created_at"],
-  assets: ["id", "name", "date", "venture", "project", "task", "type", "address", "area", "unit", "owner_ventures", "status", "custom_fields", "created_at"],
+  assets: ["id", "name", "venture", "project", "type", "engine", "format", "version", "status", "file_ref", "owner", "reviewer", "due_date", "permission", "tags", "custom_fields", "created_at"],
   events: ["id", "title", "type", "venture", "project", "task", "date", "start", "end", "participants", "location", "summary", "calendar_ref", "custom_fields", "created_at"],
   transactions: ["id", "reference", "venture", "project", "task", "direction", "amount", "currency", "status", "counterparty", "project_asset", "due_date", "documents", "custom_fields", "created_at"],
 };
@@ -2845,7 +2766,7 @@ function getFilteredAndSortedRows(table) {
 
 function clearLegacyWorkflowStorage() {
   try {
-    ["gattabara.localTableCache", "gattabara.localPendingUpserts", "gattabara.localPendingDeletes", "atit.localTableCache", "atit.localPendingUpserts", "atit.localPendingDeletes"].forEach((key) => {
+    ["gattabara.localTableCache", "gattabara.localPendingUpserts", "gattabara.localPendingDeletes"].forEach((key) => {
       globalThis.localStorage?.removeItem(key);
     });
   } catch {
@@ -2878,7 +2799,7 @@ function getRelationOptions(fieldName, currentTableKey, record = null) {
           return String(row.project ?? "") === hierarchy.project;
         }
 
-        if (hierarchyAttachmentTables.has(currentTableKey) && fieldName === "project") {
+        if (hierarchyAttachmentTables.has(currentTableKey) && currentTableKey !== "assets" && fieldName === "project") {
           if (!hierarchy.venture) return false;
           return String(row.venture ?? "") === hierarchy.venture;
         }
@@ -3121,7 +3042,6 @@ function getRecordConnections(tableKey, record) {
 
   const relations = Object.entries(relationFields);
   relations.forEach(([fieldName, relation]) => {
-    if (tableKey === "assets" && fieldName === "owner_ventures") return;
     const value = row[fieldName];
     if (!value) return;
     const sourceTables = relation.tables ?? [relation.table];
@@ -3172,22 +3092,6 @@ function getRecordConnections(tableKey, record) {
   }
 
   if (tableKey === "assets") {
-    const ownerItems = (Array.isArray(row.owner_ventures) ? row.owner_ventures : [])
-      .map((entry) => {
-        const ventureName = getEntryLabel(entry);
-        if (!ventureName) return null;
-        const found = data.ventures.find((item) => item.name === ventureName) ?? null;
-        if (!found) return null;
-        const stake = getEntryStake(entry);
-        return {
-          label: `${found.name}${stake ? ` · ${stake}%` : ""}`,
-          tableKey: "ventures",
-          id: found.id,
-          row: found,
-        };
-      })
-      .filter(Boolean);
-    addConnection("ventures", ownerItems, "ventures", "context");
     const linkedTransactions = getLinkedTransactionsForAsset(rowLabel);
     addConnection(
       "transactions",
@@ -3466,13 +3370,13 @@ function shouldExpandTreeItem(rootTableKey, parentTableKey, depth, childTableKey
 function getTreeNodeToneClass(tableKey, record) {
   if (tableKey === "people") {
     const ventureName = record?.venture || "";
-    if (!ventureName || ventureName === "ATIT" || ventureName === "ATit" || ventureName === "Gattabara Games") return "";
+    if (!ventureName || ventureName === "Gattabara Games") return "";
     return getVentureTone(ventureName);
   }
 
   if (tableKey === "ventures") {
     const ventureName = record?.name || "";
-    if (!ventureName || ventureName === "ATIT" || ventureName === "ATit" || ventureName === "Gattabara Games") return "";
+    if (!ventureName || ventureName === "Gattabara Games") return "";
     return getVentureTone(ventureName);
   }
 
@@ -4088,8 +3992,8 @@ function renderRecordDetail(table, record) {
     ? visibleFields.filter((field) => field.name !== "body")
     : visibleFields;
   const renderDetailFieldValue = (field, display) => {
-    if (table.key === "documents" && field.name === "file_ref") {
-      const visitUrl = getDocumentVisitUrl(record);
+    if (field.name === "file_ref") {
+      const visitUrl = getRecordVisitUrl(record);
       if (visitUrl) {
         return `<a class="detail-field-link" href="${escapeHtml(visitUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(display)}</a>`;
       }
@@ -4176,6 +4080,7 @@ function renderRecordDetail(table, record) {
           <div class="detail-actions">
             <button class="record-action-button" type="button" data-detail-action="tree">${state.detailTreeOpen ? "Hide tree" : "Tree view"}</button>
             ${canShareRecord(table.key) ? `<button class="record-action-button" type="button" data-detail-action="share">Share</button>` : ""}
+            ${getRecordVisitUrl(record) ? `<button class="record-action-button" type="button" data-detail-action="visit">Visit</button>` : ""}
             ${renderRecordActionIconButton("edit", "Edit", 'data-detail-action="edit"')}
             ${canArchiveRecord(table.key)
               ? renderRecordActionIconButton(isRecordArchived(record) ? "restore" : "archive", isRecordArchived(record) ? "Restore" : "Archive", `data-detail-action="${isRecordArchived(record) ? "restore" : "archive"}"`)
@@ -4263,7 +4168,7 @@ function allRecords() {
 }
 
 function countLinks() {
-  const fields = ["venture", "project", "task", "parent_task", "assignees", "depends_on", "external_shared_with", "links", "participants", "owner_ventures"];
+  const fields = ["venture", "project", "task", "parent_task", "assignees", "depends_on", "external_shared_with", "links", "participants"];
   return Object.values(data).reduce((sum, table) => {
     if (!Array.isArray(table)) return sum;
     return sum + table.reduce((tableSum, row) => {
@@ -4597,13 +4502,21 @@ function showSharedShell() {
 
 function renderSharedPasswordGate(error = "") {
   return `
-    <div class="shared-page">
+    <div class="shared-page shared-page-auth">
       <section class="shared-auth-card">
-        <div class="shared-brand">ATit shared page</div>
+        <div class="shared-brand">Gattabara Games shared page</div>
         <h1>Password required</h1>
         <p>This shared record is password protected.</p>
         <form data-shared-password-form>
-          <input type="password" data-shared-password-input placeholder="Enter password" autocomplete="current-password" />
+          <span class="login-password-wrap">
+            <input type="password" data-shared-password-input placeholder="Enter password" autocomplete="current-password" />
+            <button class="login-password-toggle" type="button" data-shared-password-toggle aria-label="Show password" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1.5 12s3.8-6 10.5-6 10.5 6 10.5 6-3.8 6-10.5 6S1.5 12 1.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            </button>
+          </span>
           <button class="save-button" type="submit">Open shared page</button>
         </form>
         ${error ? `<p class="shared-error">${escapeHtml(error)}</p>` : ""}
@@ -4667,7 +4580,7 @@ function renderSharedDetailPage() {
     return `
       <div class="shared-page">
         <section class="shared-auth-card">
-          <div class="shared-brand">ATit shared page</div>
+          <div class="shared-brand">Gattabara Games shared page</div>
           <h1>Shared record unavailable</h1>
           <p>The shared record could not be loaded.</p>
         </section>
@@ -4679,13 +4592,13 @@ function renderSharedDetailPage() {
     <div class="shared-page">
       <section class="shared-header">
         <div>
-          <div class="shared-brand">ATit shared page · Read only</div>
+          <div class="shared-brand">Gattabara Games shared page · Read only</div>
           <h1>${escapeHtml(record.name || record.title || table.singular)}</h1>
           <p>${escapeHtml(table.singular)} details, linked records, tree view, and notes.</p>
         </div>
         <div class="shared-actions">
           <button class="record-action-button" type="button" data-shared-action="tree">${state.sharedTreeOpen ? "Hide tree" : "Tree view"}</button>
-          <button class="save-button" type="button" data-shared-action="note">Notes</button>
+          <button class="save-button" type="button" data-shared-action="note">Add notes</button>
         </div>
       </section>
       <section class="detail-grid shared-detail-grid">
@@ -4713,9 +4626,9 @@ function renderSharedPage() {
 
   if (state.sharedLoading) {
     el.heroPanel.innerHTML = `
-      <div class="shared-page">
+      <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
-          <div class="shared-brand">ATit shared page</div>
+          <div class="shared-brand">Gattabara Games shared page</div>
           <h1>Loading shared page...</h1>
         </section>
       </div>
@@ -4731,9 +4644,9 @@ function renderSharedPage() {
 
   if (state.sharedError && !state.sharedBundle) {
     el.heroPanel.innerHTML = `
-      <div class="shared-page">
+      <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
-          <div class="shared-brand">ATit shared page</div>
+          <div class="shared-brand">Gattabara Games shared page</div>
           <h1>Shared link unavailable</h1>
           <p>${escapeHtml(state.sharedError)}</p>
         </section>
@@ -4822,6 +4735,15 @@ function bindSharedPageEvents() {
     event.preventDefault();
     const password = el.heroPanel.querySelector("[data-shared-password-input]")?.value ?? "";
     await loadSharedBundle({ password });
+  });
+  el.heroPanel.querySelector("[data-shared-password-toggle]")?.addEventListener("click", () => {
+    const passwordInput = el.heroPanel.querySelector("[data-shared-password-input]");
+    const toggle = el.heroPanel.querySelector("[data-shared-password-toggle]");
+    if (!passwordInput || !toggle) return;
+    const isVisible = passwordInput.type === "text";
+    passwordInput.type = isVisible ? "password" : "text";
+    toggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    toggle.setAttribute("aria-pressed", isVisible ? "false" : "true");
   });
   el.heroPanel.querySelectorAll("[data-shared-action]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -5914,7 +5836,7 @@ function formatIndianNumber(value) {
 
 function getCurrencyDisplay(currency) {
   const map = {
-    INR: "INR",
+    INR: "Rs",
     USD: "USD",
     EUR: "EUR",
     GBP: "GBP",
@@ -5988,6 +5910,22 @@ function renderProjectTypeBadge(type, variant = "records") {
   return renderBadge(type, variant, "project-type");
 }
 
+function renderVentureTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "venture-type");
+}
+
+function renderPeopleTypeBadge(type, variant = "records") {
+  return renderBadge(type, variant, "people-type");
+}
+
+function renderAccessLevelBadge(level, variant = "records") {
+  return renderBadge(level, variant, "access-level");
+}
+
+function renderPriorityBadge(priority, variant = "records") {
+  return renderBadge(priority, variant, "priority");
+}
+
 function renderDirectionBadge(direction, variant = "records") {
   return renderBadge(direction, variant, "direction");
 }
@@ -6046,8 +5984,23 @@ function renderCellMarkup(tableKey, column, row) {
   if ((tableKey === "tasks" || tableKey === "projects") && column === "status" && value !== "—") {
     return renderTaskStatusBadge(value, "records");
   }
+  if (tableKey === "ventures" && column === "type" && value !== "—") {
+    return renderVentureTypeBadge(value, "records");
+  }
   if (tableKey === "projects" && column === "type" && value !== "—") {
     return renderProjectTypeBadge(value, "records");
+  }
+  if (tableKey === "people" && column === "type" && value !== "—") {
+    return renderPeopleTypeBadge(value, "records");
+  }
+  if (tableKey === "people" && column === "access_level" && value !== "—") {
+    return renderAccessLevelBadge(value, "records");
+  }
+  if (tableKey === "people" && column === "status" && value !== "—") {
+    return renderTaskStatusBadge(value, "records");
+  }
+  if (tableKey === "tasks" && column === "priority" && value !== "—") {
+    return renderPriorityBadge(value, "records");
   }
   if (tableKey === "documents" && column === "status" && value !== "—") {
     return renderDocumentStatusBadge(value, "records");
@@ -6080,7 +6033,7 @@ function renderSerialNumber(value) {
   return `<span class="record-serial">${escapeHtml(String(value))}</span>`;
 }
 
-function getDocumentVisitUrl(record) {
+function getRecordVisitUrl(record) {
   const raw = String(record?.file_ref ?? "").trim();
   if (!raw) return "";
   try {
@@ -6104,7 +6057,7 @@ function renderRecordsBody(table, rows) {
       <td class="records-serial-cell">${renderSerialNumber(index + 1)}</td>
       ${table.listColumns.map((column) => `<td>${renderCellMarkup(table.key, column, row)}</td>`).join("")}
       <td class="records-actions-cell">
-        ${table.key === "documents" && getDocumentVisitUrl(row)
+        ${getRecordVisitUrl(row)
           ? `<button class="record-action-button" type="button" data-record-action="visit" data-record-id="${escapeHtml(row.id)}">Visit</button>`
           : ""}
         ${renderRecordActionIconButton("edit", `Edit ${row.name || row.title || row.reference || "record"}`, `data-record-action="edit" data-record-id="${escapeHtml(row.id)}"`)}
@@ -6579,7 +6532,7 @@ function bindRecordRowActions(table) {
       const { recordAction, recordId } = button.dataset;
       if (recordAction === "visit") {
         const record = data[table.key]?.find((item) => item.id === recordId) ?? null;
-        const visitUrl = getDocumentVisitUrl(record);
+        const visitUrl = getRecordVisitUrl(record);
         if (visitUrl) window.open(visitUrl, "_blank", "noopener,noreferrer");
       }
       if (recordAction === "edit") {
@@ -6691,6 +6644,10 @@ function renderHeroPanel() {
         if (action === "edit") openForm(detail.table.key, detail.record.id);
         if (action === "share") {
           openShareModal(detail.table, detail.record);
+        }
+        if (action === "visit") {
+          const visitUrl = getRecordVisitUrl(detail.record);
+          if (visitUrl) window.open(visitUrl, "_blank", "noopener,noreferrer");
         }
         if (action === "delete") {
           const deleted = await deleteRecord(detail.table.key, detail.record.id);
@@ -7148,11 +7105,11 @@ function renderNewCustomFieldCard(activeTable) {
       <div class="form-builder-grid">
         <label>
           <span>Field label</span>
-          <input type="text" value="" placeholder="Example: GST number" data-new-field-label />
+          <input type="text" value="" placeholder="Example: Platform notes" data-new-field-label />
         </label>
         <label>
           <span>Column key</span>
-          <input type="text" value="" placeholder="Example: gst_number" data-new-field-name />
+          <input type="text" value="" placeholder="Example: platform_notes" data-new-field-name />
         </label>
         <label>
           <span>Field type</span>
@@ -7738,71 +7695,6 @@ function getFieldDisplayValue(field, record) {
   return String(rawValue);
 }
 
-function sanitizeStakeInput(value, { finalize = false } = {}) {
-  let normalized = String(value ?? "")
-    .replace(/[^0-9.]/g, "")
-    .replace(/(\..*)\./g, "$1");
-
-  const parts = normalized.split(".");
-  if (parts.length > 2) {
-    normalized = `${parts[0]}.${parts.slice(1).join("")}`;
-  }
-
-  if (parts[1] != null) {
-    normalized = `${parts[0]}.${parts[1].slice(0, 2)}`;
-  }
-
-  if (!finalize) return normalized;
-  if (!normalized || normalized === ".") return "";
-
-  const numeric = Number(normalized);
-  if (Number.isNaN(numeric)) return "";
-  const clamped = Math.min(Math.max(numeric, 0), 100);
-  return String(clamped).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
-}
-
-function renderOwnershipRow(entry = {}, index = 0, options = []) {
-  const label = entry.venture ?? entry.name ?? entry.label ?? "";
-  const stake = sanitizeStakeInput(entry.stake ?? "", { finalize: true });
-  const sortedOptions = sortOptionsAlpha(options);
-  return `
-    <div class="ownership-row" data-ownership-row>
-      <label class="ownership-field">
-        <span>Venture</span>
-        <select name="owner_ventures_venture_${index}">
-          <option value="">Select venture</option>
-          ${sortedOptions.map((option) => `<option value="${escapeHtml(option.value)}" ${label === option.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`).join("")}
-        </select>
-      </label>
-      <label class="ownership-field stake-field">
-        <span>Stake %</span>
-        <input name="owner_ventures_stake_${index}" class="ownership-stake-input" type="text" inputmode="decimal" value="${escapeHtml(stake)}" placeholder="0.00" />
-      </label>
-      <button class="ownership-remove" type="button" data-ownership-remove aria-label="Remove venture">×</button>
-    </div>
-  `;
-}
-
-function renderOwnershipRepeater(record = null, currentTableKey = "") {
-  const ventureOptions = getRelationOptions("owner_ventures", currentTableKey, record);
-  const values = Array.isArray(record?.owner_ventures) && record.owner_ventures.length
-    ? record.owner_ventures.map((entry) => (typeof entry === "object" && entry !== null ? entry : { venture: entry, stake: "" }))
-    : [{ venture: "", stake: "" }];
-
-  return `
-    <div class="ownership-repeater" data-ownership-repeater>
-      <div class="ownership-repeater-head">
-        <span>Owner ventures</span>
-        <button class="ownership-add" type="button" data-ownership-add>+ Add venture</button>
-      </div>
-      <div class="ownership-repeater-list" data-ownership-list>
-        ${values.map((entry, index) => renderOwnershipRow(entry, index, ventureOptions)).join("")}
-      </div>
-      <small class="form-hint">Choose a venture, enter stake %, and add another row if needed.</small>
-    </div>
-  `;
-}
-
 function renderDurationField(field, record = null) {
   const rawValue = String(record?.[field.name] ?? field.value ?? "").trim();
   const parsedValue = parseDurationValue(rawValue);
@@ -7927,10 +7819,6 @@ function renderField(field, record = null, currentTableKey = "") {
     relation.table === "people" || (Array.isArray(relation.tables) && relation.tables.includes("people"))
   );
 
-  if (currentTableKey === "assets" && field.name === "owner_ventures") {
-    return renderOwnershipRepeater(record, currentTableKey);
-  }
-
   if (currentTableKey === "tasks" && (field.name === "estimate" || field.name === "time_logged")) {
     return renderDurationField(field, record);
   }
@@ -8017,7 +7905,7 @@ function renderField(field, record = null, currentTableKey = "") {
     }
 
     const hierarchy = getHierarchyContext(record);
-    const isProjectSelect = field.name === "project" && (currentTableKey === "tasks" || hierarchyAttachmentTables.has(currentTableKey));
+    const isProjectSelect = field.name === "project" && (currentTableKey === "tasks" || (hierarchyAttachmentTables.has(currentTableKey) && currentTableKey !== "assets"));
     const isTaskSelect = field.name === "task" && hierarchyAttachmentTables.has(currentTableKey);
     const selectPlaceholder = isTaskSelect
       ? (hierarchy.project ? "Select task" : "Select project first")
@@ -8052,12 +7940,13 @@ function renderField(field, record = null, currentTableKey = "") {
 
   if (field.type === "select") {
     const fieldOptions = sortStringsAlpha(field.options ?? []);
+    const selectedOption = fieldValue || field.value || "";
     return `
       <label class="form-field">
         <span>${label}</span>
         <select name="${escapeHtml(field.name)}" ${required}>
           <option value="">Select</option>
-          ${fieldOptions.map((option) => `<option value="${escapeHtml(option)}" ${fieldValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+          ${fieldOptions.map((option) => `<option value="${escapeHtml(option)}" ${selectedOption === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
       </label>
     `;
@@ -8152,7 +8041,6 @@ function openForm(key, recordId = null) {
   el.modal.classList.add("open");
   syncBodyModalState();
   bindFormattedInputs();
-  bindOwnershipRepeater(key);
   bindHierarchyFilters(record);
   bindInlinePrimaryContactComposer();
 }
@@ -8249,65 +8137,6 @@ function closeDeleteConfirm(result = false) {
   el.confirmModal.setAttribute("aria-hidden", "true");
   syncBodyModalState();
   resolve(result);
-}
-
-function bindOwnershipRepeater(tableKey) {
-  const repeater = el.formElement.querySelector("[data-ownership-repeater]");
-  if (!repeater || tableKey !== "assets") return;
-  const list = repeater.querySelector("[data-ownership-list]");
-  const addButton = repeater.querySelector("[data-ownership-add]");
-  const ventureOptions = getRelationOptions("owner_ventures", tableKey);
-  let rowIndex = list.querySelectorAll("[data-ownership-row]").length;
-
-  const bindStakeInput = (row) => {
-    const input = row.querySelector(".ownership-stake-input");
-    if (!(input instanceof HTMLInputElement)) return;
-
-    input.addEventListener("input", () => {
-      input.value = sanitizeStakeInput(input.value);
-    });
-
-    input.addEventListener("blur", () => {
-      input.value = sanitizeStakeInput(input.value, { finalize: true });
-    });
-  };
-
-  const buildRow = (entry = {}) => {
-    const wrapper = document.createElement("div");
-    wrapper.innerHTML = renderOwnershipRow(entry, rowIndex, ventureOptions).trim();
-    rowIndex += 1;
-    const row = wrapper.firstElementChild;
-    bindStakeInput(row);
-    row.querySelector("[data-ownership-remove]")?.addEventListener("click", () => {
-      if (list.querySelectorAll("[data-ownership-row]").length <= 1) {
-        row.querySelectorAll("select,input").forEach((input) => {
-          if (input.tagName === "SELECT") input.value = "";
-          else input.value = "";
-        });
-        return;
-      }
-      row.remove();
-    });
-    return row;
-  };
-
-  addButton?.addEventListener("click", () => {
-    list.appendChild(buildRow());
-  });
-
-  list.querySelectorAll("[data-ownership-row]").forEach((row) => {
-    bindStakeInput(row);
-    row.querySelector("[data-ownership-remove]")?.addEventListener("click", () => {
-      if (list.querySelectorAll("[data-ownership-row]").length <= 1) {
-        row.querySelectorAll("select,input").forEach((input) => {
-          if (input.tagName === "SELECT") input.value = "";
-          else input.value = "";
-        });
-        return;
-      }
-      row.remove();
-    });
-  });
 }
 
 function bindHierarchyFilters(record = null) {
@@ -8581,20 +8410,6 @@ function buildRecordFromForm(table) {
       record[field.name] = rawAmount && Number.isFinite(amount) && amount > 0
         ? formatDurationValue(amount, unit === "d" ? "d" : "h")
         : "";
-      return;
-    }
-
-    if (table.key === "assets" && field.name === "owner_ventures") {
-      const rows = Array.from(el.formElement.querySelectorAll("[data-ownership-row]"));
-      record[field.name] = rows
-        .map((row) => {
-          const venture = row.querySelector(`select[name^="owner_ventures_venture_"]`)?.value?.trim() ?? "";
-          const rawStake = row.querySelector(`input[name^="owner_ventures_stake_"]`)?.value?.trim() ?? "";
-          const stake = sanitizeStakeInput(rawStake, { finalize: true });
-          if (!venture) return null;
-          return { venture, stake };
-        })
-        .filter(Boolean);
       return;
     }
 

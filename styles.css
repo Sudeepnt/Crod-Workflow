@@ -90,8 +90,8 @@ body.app-mobile {
 }
 
 .login-logo {
-  width: min(240px, 72%);
-  max-height: 96px;
+  width: min(168px, 50%);
+  max-height: 68px;
   height: auto;
   object-fit: contain;
 }
@@ -1596,7 +1596,7 @@ input[type="search"] {
 }
 
 .attention-card-title {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.2;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -1661,9 +1661,13 @@ input[type="search"] {
 .records-status-badge,
 .attention-event-badge,
 .records-event-badge,
+.records-venture-type-badge,
+.records-people-type-badge,
+.records-access-level-badge,
 .records-project-type-badge,
 .records-document-type-badge,
 .records-document-status-badge,
+.records-priority-badge,
 .records-direction-badge,
 .records-asset-type-badge,
 .records-asset-status-badge,
@@ -1684,9 +1688,13 @@ input[type="search"] {
 
 .records-status-badge,
 .records-event-badge,
+.records-venture-type-badge,
+.records-people-type-badge,
+.records-access-level-badge,
 .records-project-type-badge,
 .records-document-type-badge,
 .records-document-status-badge,
+.records-priority-badge,
 .records-direction-badge,
 .records-asset-type-badge,
 .records-asset-status-badge,
@@ -1767,6 +1775,27 @@ input[type="search"] {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
   background: rgba(207, 250, 254, 0.92);
+}
+
+.attention-event-review,
+.records-event-review {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.attention-event-playtest,
+.records-event-playtest {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.attention-event-milestone,
+.records-event-milestone {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
 }
 
 .attention-event-inspection,
@@ -1861,52 +1890,99 @@ input[type="search"] {
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-project-type-development {
+.records-document-type-brief,
+.records-document-type-build-notes {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-project-type-marketing {
-  color: #ec4899;
-  border-color: rgba(236, 72, 153, 0.2);
-  background: rgba(252, 231, 243, 0.92);
-}
-
-.records-project-type-acquisition {
-  color: #16a34a;
-  border-color: rgba(22, 163, 74, 0.2);
-  background: rgba(220, 252, 231, 0.92);
-}
-
-.records-project-type-leasing {
+.records-document-type-gdd,
+.records-document-type-script {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-project-type-infra {
-  color: #b45309;
-  border-color: rgba(245, 158, 11, 0.24);
-  background: rgba(254, 243, 199, 0.92);
+.records-document-type-art-bible,
+.records-document-type-storyboard {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
 }
 
-.records-project-type-capitalraise {
-  color: #0d9488;
-  border-color: rgba(13, 148, 136, 0.22);
-  background: rgba(204, 251, 241, 0.92);
-}
-
-.records-project-type-logistics {
+.records-document-type-feedback {
   color: #ea580c;
   border-color: rgba(234, 88, 12, 0.22);
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-project-type-internal {
+.records-document-type-pitch-deck {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-project-type-development,
+.records-project-type-game-development {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-project-type-marketing,
+.records-project-type-art-production {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-project-type-acquisition,
+.records-project-type-animation {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-project-type-leasing,
+.records-project-type-co-development {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-project-type-infra,
+.records-project-type-prototype {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-project-type-capitalraise,
+.records-project-type-liveops {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-project-type-logistics,
+.records-project-type-client-production {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-project-type-internal,
+.records-project-type-internal-ip {
   color: #6b7280;
   border-color: rgba(107, 114, 128, 0.22);
   background: rgba(243, 244, 246, 0.92);
+}
+
+.records-project-type-strategy {
+  color: #1d4ed8;
+  border-color: rgba(29, 78, 216, 0.22);
+  background: rgba(219, 234, 254, 0.92);
 }
 
 .records-direction-receivable {
@@ -1921,40 +1997,252 @@ input[type="search"] {
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-asset-type-building {
+.records-venture-type-internal-studio {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-asset-type-land {
+.records-venture-type-client {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-asset-type-unit {
+.records-venture-type-publisher {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-asset-type-theatre {
+.records-venture-type-partner-studio {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
 }
 
-.records-asset-type-warehouse {
+.records-venture-type-vendor {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-venture-type-contractor-studio {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-venture-type-investor {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-venture-type-prospect {
   color: #b45309;
   border-color: rgba(245, 158, 11, 0.24);
   background: rgba(254, 243, 199, 0.92);
 }
 
-.records-asset-type-mixed {
+.records-people-type-founder,
+.records-access-level-founder {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-people-type-producer,
+.records-people-type-partner,
+.records-access-level-partner {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-people-type-employee,
+.records-access-level-employee {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-people-type-client,
+.records-access-level-client {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
   background: rgba(207, 250, 254, 0.92);
+}
+
+.records-people-type-publisher {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-people-type-investor {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-people-type-contractor,
+.records-access-level-contractor {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-people-type-vendor,
+.records-people-type-consultant,
+.records-people-type-freelancer {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-priority-low {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-priority-medium {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-priority-high {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-priority-critical {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+  background: rgba(254, 226, 226, 0.92);
+}
+
+.records-asset-type-game-ip {
+  color: #2563eb;
+  border-color: rgba(37, 99, 235, 0.24);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-asset-type-character {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-asset-type-environment {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-asset-type-prop {
+  color: #ec4899;
+  border-color: rgba(236, 72, 153, 0.2);
+  background: rgba(252, 231, 243, 0.92);
+}
+
+.records-asset-type-animation {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-asset-type-rig {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-asset-type-build {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-asset-type-level {
+  color: #1d4ed8;
+  border-color: rgba(29, 78, 216, 0.22);
+  background: rgba(219, 234, 254, 0.92);
+}
+
+.records-asset-type-ui-kit {
+  color: #0d9488;
+  border-color: rgba(13, 148, 136, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-asset-type-audio {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-asset-type-vfx {
+  color: #dc2626;
+  border-color: rgba(220, 38, 38, 0.2);
+  background: rgba(254, 226, 226, 0.92);
+}
+
+.records-asset-type-source-file {
+  color: #475569;
+  border-color: rgba(71, 85, 105, 0.22);
+  background: rgba(226, 232, 240, 0.92);
+}
+
+.records-asset-type-art-pack {
+  color: #ca8a04;
+  border-color: rgba(202, 138, 4, 0.22);
+  background: rgba(254, 249, 195, 0.92);
+}
+
+.records-asset-type-tool {
+  color: #0f766e;
+  border-color: rgba(15, 118, 110, 0.22);
+  background: rgba(204, 251, 241, 0.92);
+}
+
+.records-asset-status-concept {
+  color: #6b7280;
+  border-color: rgba(107, 114, 128, 0.22);
+  background: rgba(243, 244, 246, 0.92);
+}
+
+.records-asset-status-in-production {
+  color: #ea580c;
+  border-color: rgba(234, 88, 12, 0.22);
+  background: rgba(255, 237, 213, 0.92);
+}
+
+.records-asset-status-in-review {
+  color: #7c3aed;
+  border-color: rgba(124, 58, 237, 0.22);
+  background: rgba(237, 233, 254, 0.92);
+}
+
+.records-asset-status-approved {
+  color: #16a34a;
+  border-color: rgba(22, 163, 74, 0.2);
+  background: rgba(220, 252, 231, 0.92);
+}
+
+.records-asset-status-delivered {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-asset-status-archived {
+  color: #475569;
+  border-color: rgba(71, 85, 105, 0.22);
+  background: rgba(226, 232, 240, 0.92);
 }
 
 .records-asset-status-under-acquisition {
@@ -2033,6 +2321,24 @@ input[type="search"] {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
+}
+
+.records-venture-status-onboarding {
+  color: #0891b2;
+  border-color: rgba(8, 145, 178, 0.22);
+  background: rgba(207, 250, 254, 0.92);
+}
+
+.records-venture-status-paused {
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(254, 243, 199, 0.92);
+}
+
+.records-venture-status-archived {
+  color: #475569;
+  border-color: rgba(71, 85, 105, 0.22);
+  background: rgba(226, 232, 240, 0.92);
 }
 
 .records-venture-status-dormant {
@@ -2391,6 +2697,7 @@ input[type="search"] {
   padding-top: 18px;
   display: grid;
   gap: 18px;
+  align-content: start;
 }
 
 .people-empty.records-empty-state {
@@ -2475,6 +2782,7 @@ input[type="search"] {
   border-radius: 14px;
   overflow: hidden;
   background: #ffffff;
+  align-self: start;
 }
 
 .people-group-head {
@@ -4352,6 +4660,11 @@ input[type="search"] {
   gap: 18px;
 }
 
+.shared-page-auth {
+  min-height: calc(100vh - 44px);
+  align-content: center;
+}
+
 .shared-header,
 .shared-auth-card {
   border: 1px solid var(--line);
@@ -4359,7 +4672,7 @@ input[type="search"] {
   background:
     radial-gradient(circle at top right, rgba(191, 238, 240, 0.55), transparent 34%),
     #ffffff;
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .shared-header {
@@ -4371,24 +4684,26 @@ input[type="search"] {
 
 .shared-brand {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .shared-header h1,
 .shared-auth-card h1 {
-  margin: 8px 0 8px;
-  font-size: clamp(28px, 4vw, 48px);
+  margin: 6px 0 8px;
+  font-size: clamp(22px, 3vw, 32px);
   letter-spacing: -0.04em;
+  line-height: 1.02;
 }
 
 .shared-header p,
 .shared-auth-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .shared-actions {
@@ -4397,6 +4712,12 @@ input[type="search"] {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.shared-actions .record-action-button,
+.shared-actions .save-button {
+  font-size: 14px;
+  padding: 10px 14px;
 }
 
 .shared-detail-grid {
@@ -4408,7 +4729,7 @@ input[type="search"] {
 
 .shared-auth-card {
   width: min(520px, 100%);
-  margin: 12vh auto 0;
+  margin: 0 auto;
   display: grid;
   gap: 14px;
 }
@@ -4418,11 +4739,16 @@ input[type="search"] {
   gap: 10px;
 }
 
+.shared-auth-card .login-password-wrap {
+  display: block;
+}
+
 .shared-auth-card input {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
   font: inherit;
+  width: 100%;
 }
 
 .shared-error {
@@ -5680,6 +6006,14 @@ input[type="search"] {
 }
 
 @media (max-width: 720px) {
+  body.shared-view .content {
+    padding: 14px;
+  }
+
+  .shared-page-auth {
+    min-height: calc(100vh - 28px);
+  }
+
   .login-screen {
     padding: 18px;
   }
@@ -5691,8 +6025,8 @@ input[type="search"] {
   }
 
   .login-logo {
-    width: min(190px, 70%);
-    max-height: 76px;
+    width: min(133px, 49%);
+    max-height: 53px;
   }
 
   .board {
@@ -5807,6 +6141,14 @@ input[type="search"] {
 }
 
 @media (max-width: 560px) {
+  body.shared-view .content {
+    padding: 10px;
+  }
+
+  .shared-page-auth {
+    min-height: calc(100vh - 20px);
+  }
+
   .page-view-dashboard .hero-minimal {
     gap: 14px;
   }
