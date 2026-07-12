@@ -90,8 +90,8 @@ body.app-mobile {
 }
 
 .login-logo {
-  width: min(240px, 72%);
-  max-height: 96px;
+  width: min(168px, 50%);
+  max-height: 68px;
   height: auto;
   object-fit: contain;
 }
@@ -1596,7 +1596,7 @@ input[type="search"] {
 }
 
 .attention-card-title {
-  font-size: 18px;
+  font-size: 15px;
   line-height: 1.2;
   letter-spacing: -0.02em;
   font-weight: 700;
@@ -2125,42 +2125,36 @@ input[type="search"] {
   background: rgba(254, 226, 226, 0.92);
 }
 
-.records-asset-type-building,
 .records-asset-type-game-ip {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-asset-type-land,
 .records-asset-type-character {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-asset-type-unit,
 .records-asset-type-environment {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-asset-type-theatre,
 .records-asset-type-prop {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
 }
 
-.records-asset-type-warehouse,
 .records-asset-type-animation {
   color: #b45309;
   border-color: rgba(245, 158, 11, 0.24);
   background: rgba(254, 243, 199, 0.92);
 }
 
-.records-asset-type-mixed,
 .records-asset-type-rig {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
@@ -4664,6 +4658,11 @@ input[type="search"] {
   gap: 18px;
 }
 
+.shared-page-auth {
+  min-height: calc(100vh - 44px);
+  align-content: center;
+}
+
 .shared-header,
 .shared-auth-card {
   border: 1px solid var(--line);
@@ -4671,7 +4670,7 @@ input[type="search"] {
   background:
     radial-gradient(circle at top right, rgba(191, 238, 240, 0.55), transparent 34%),
     #ffffff;
-  padding: 24px;
+  padding: 20px 24px;
 }
 
 .shared-header {
@@ -4683,24 +4682,26 @@ input[type="search"] {
 
 .shared-brand {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
 .shared-header h1,
 .shared-auth-card h1 {
-  margin: 8px 0 8px;
-  font-size: clamp(28px, 4vw, 48px);
+  margin: 6px 0 8px;
+  font-size: clamp(22px, 3vw, 32px);
   letter-spacing: -0.04em;
+  line-height: 1.02;
 }
 
 .shared-header p,
 .shared-auth-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.55;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .shared-actions {
@@ -4709,6 +4710,12 @@ input[type="search"] {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.shared-actions .record-action-button,
+.shared-actions .save-button {
+  font-size: 14px;
+  padding: 10px 14px;
 }
 
 .shared-detail-grid {
@@ -4720,7 +4727,7 @@ input[type="search"] {
 
 .shared-auth-card {
   width: min(520px, 100%);
-  margin: 12vh auto 0;
+  margin: 0 auto;
   display: grid;
   gap: 14px;
 }
@@ -4730,11 +4737,16 @@ input[type="search"] {
   gap: 10px;
 }
 
+.shared-auth-card .login-password-wrap {
+  display: block;
+}
+
 .shared-auth-card input {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 12px;
   font: inherit;
+  width: 100%;
 }
 
 .shared-error {
@@ -5992,6 +6004,14 @@ input[type="search"] {
 }
 
 @media (max-width: 720px) {
+  body.shared-view .content {
+    padding: 14px;
+  }
+
+  .shared-page-auth {
+    min-height: calc(100vh - 28px);
+  }
+
   .login-screen {
     padding: 18px;
   }
@@ -6003,8 +6023,8 @@ input[type="search"] {
   }
 
   .login-logo {
-    width: min(190px, 70%);
-    max-height: 76px;
+    width: min(133px, 49%);
+    max-height: 53px;
   }
 
   .board {
@@ -6119,6 +6139,14 @@ input[type="search"] {
 }
 
 @media (max-width: 560px) {
+  body.shared-view .content {
+    padding: 10px;
+  }
+
+  .shared-page-auth {
+    min-height: calc(100vh - 20px);
+  }
+
   .page-view-dashboard .hero-minimal {
     gap: 14px;
   }

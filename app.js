@@ -865,27 +865,27 @@ const data = {
     },
     {
       id: "txn_15",
-      reference: "rent-01",
+      reference: "infra-01",
       venture: "v2",
       direction: "Payable",
       amount: "45000",
       currency: "INR",
       status: "Overdue",
-      counterparty: "landlord",
+      counterparty: "cloud hosting vendor",
       project_asset: "a1",
       due_date: "2026-07-01",
       documents: [],
     },
     {
       id: "txn_16",
-      reference: "rent-02",
+      reference: "tools-02",
       venture: "v1",
       project: "p1",
       direction: "Payable",
       amount: "28000",
       currency: "INR",
       status: "Raised",
-      counterparty: "landlord",
+      counterparty: "software licenses",
       project_asset: "a2",
       due_date: "2026-07-10",
       documents: [],
@@ -4501,13 +4501,21 @@ function showSharedShell() {
 
 function renderSharedPasswordGate(error = "") {
   return `
-    <div class="shared-page">
+    <div class="shared-page shared-page-auth">
       <section class="shared-auth-card">
         <div class="shared-brand">Gattabara Games shared page</div>
         <h1>Password required</h1>
         <p>This shared record is password protected.</p>
         <form data-shared-password-form>
-          <input type="password" data-shared-password-input placeholder="Enter password" autocomplete="current-password" />
+          <span class="login-password-wrap">
+            <input type="password" data-shared-password-input placeholder="Enter password" autocomplete="current-password" />
+            <button class="login-password-toggle" type="button" data-shared-password-toggle aria-label="Show password" aria-pressed="false">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M1.5 12s3.8-6 10.5-6 10.5 6 10.5 6-3.8 6-10.5 6S1.5 12 1.5 12Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+              </svg>
+            </button>
+          </span>
           <button class="save-button" type="submit">Open shared page</button>
         </form>
         ${error ? `<p class="shared-error">${escapeHtml(error)}</p>` : ""}
@@ -4589,7 +4597,7 @@ function renderSharedDetailPage() {
         </div>
         <div class="shared-actions">
           <button class="record-action-button" type="button" data-shared-action="tree">${state.sharedTreeOpen ? "Hide tree" : "Tree view"}</button>
-          <button class="save-button" type="button" data-shared-action="note">Notes</button>
+          <button class="save-button" type="button" data-shared-action="note">Add notes</button>
         </div>
       </section>
       <section class="detail-grid shared-detail-grid">
@@ -4617,7 +4625,7 @@ function renderSharedPage() {
 
   if (state.sharedLoading) {
     el.heroPanel.innerHTML = `
-      <div class="shared-page">
+      <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
           <div class="shared-brand">Gattabara Games shared page</div>
           <h1>Loading shared page...</h1>
@@ -4635,7 +4643,7 @@ function renderSharedPage() {
 
   if (state.sharedError && !state.sharedBundle) {
     el.heroPanel.innerHTML = `
-      <div class="shared-page">
+      <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
           <div class="shared-brand">Gattabara Games shared page</div>
           <h1>Shared link unavailable</h1>
@@ -4726,6 +4734,15 @@ function bindSharedPageEvents() {
     event.preventDefault();
     const password = el.heroPanel.querySelector("[data-shared-password-input]")?.value ?? "";
     await loadSharedBundle({ password });
+  });
+  el.heroPanel.querySelector("[data-shared-password-toggle]")?.addEventListener("click", () => {
+    const passwordInput = el.heroPanel.querySelector("[data-shared-password-input]");
+    const toggle = el.heroPanel.querySelector("[data-shared-password-toggle]");
+    if (!passwordInput || !toggle) return;
+    const isVisible = passwordInput.type === "text";
+    passwordInput.type = isVisible ? "password" : "text";
+    toggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    toggle.setAttribute("aria-pressed", isVisible ? "false" : "true");
   });
   el.heroPanel.querySelectorAll("[data-shared-action]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -5818,7 +5835,7 @@ function formatIndianNumber(value) {
 
 function getCurrencyDisplay(currency) {
   const map = {
-    INR: "INR",
+    INR: "Rs",
     USD: "USD",
     EUR: "EUR",
     GBP: "GBP",
@@ -7918,12 +7935,13 @@ function renderField(field, record = null, currentTableKey = "") {
 
   if (field.type === "select") {
     const fieldOptions = sortStringsAlpha(field.options ?? []);
+    const selectedOption = fieldValue || field.value || "";
     return `
       <label class="form-field">
         <span>${label}</span>
         <select name="${escapeHtml(field.name)}" ${required}>
           <option value="">Select</option>
-          ${fieldOptions.map((option) => `<option value="${escapeHtml(option)}" ${fieldValue === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+          ${fieldOptions.map((option) => `<option value="${escapeHtml(option)}" ${selectedOption === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
         </select>
       </label>
     `;
