@@ -6153,11 +6153,48 @@ select:not([multiple]) {
 
 @media (max-width: 560px) {
   body.shared-view .content {
-    padding: 10px;
+    padding: 0;
   }
 
   .shared-page-auth {
-    min-height: calc(100vh - 20px);
+    min-height: 100vh;
+  }
+
+  .shared-page {
+    gap: 10px;
+  }
+
+  .shared-header,
+  .shared-auth-card {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  body.shared-view .shared-detail-grid {
+    padding: 18px 18px 14px;
+    border-radius: 16px;
+  }
+
+  body.shared-view .detail-grid {
+    gap: 8px 18px;
+  }
+
+  body.shared-view .detail-field {
+    padding: 0 0 7px;
+  }
+
+  body.shared-view .detail-linked {
+    gap: 12px;
+    padding-top: 18px;
+    padding-bottom: 14px;
+  }
+
+  body.shared-view .detail-linked-groups {
+    gap: 12px;
+  }
+
+  body.shared-view .shared-notes-section {
+    gap: 10px;
   }
 
   .page-view-dashboard .hero-minimal {
