@@ -2091,14 +2091,20 @@ function getDatePickerMonthKey(value) {
   return `${dateKey.slice(0, 7)}-01`;
 }
 
+function getDatePickerMonthOptions(selectedMonth) {
+  return Array.from({ length: 12 }, (_, index) => {
+    const value = String(index + 1).padStart(2, "0");
+    const label = new Intl.DateTimeFormat("en-GB", { month: "short" }).format(new Date(2026, index, 1));
+    return `<option value="${value}" ${value === selectedMonth ? "selected" : ""}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
 function renderDatePickerCalendar(value, monthValue = "") {
   const selectedKey = normalizeDateKey(value);
   const monthKey = normalizeDateKey(monthValue) || getDatePickerMonthKey(selectedKey);
   const monthDate = new Date(`${monthKey}T00:00:00`);
-  const monthLabel = new Intl.DateTimeFormat("en-GB", {
-    month: "short",
-    year: "numeric",
-  }).format(monthDate);
+  const selectedMonth = String(monthDate.getMonth() + 1).padStart(2, "0");
+  const selectedYear = String(monthDate.getFullYear()).padStart(4, "0");
   const gridStart = new Date(monthDate);
   gridStart.setDate(1 - monthDate.getDay());
   const todayKey = formatLocalDateForInput();
@@ -2118,7 +2124,12 @@ function renderDatePickerCalendar(value, monthValue = "") {
   return `
     <div class="date-picker-head">
       <button type="button" data-date-month-shift="-1" aria-label="Previous month">‹</button>
-      <strong>${escapeHtml(monthLabel)}</strong>
+      <div class="date-picker-jump">
+        <select data-date-month aria-label="Month">
+          ${getDatePickerMonthOptions(selectedMonth)}
+        </select>
+        <input data-date-year type="number" min="1000" max="9999" step="1" inputmode="numeric" value="${escapeHtml(selectedYear)}" aria-label="Year" />
+      </div>
       <button type="button" data-date-month-shift="1" aria-label="Next month">›</button>
     </div>
     <div class="date-picker-weekdays" aria-hidden="true">
@@ -8192,7 +8203,7 @@ function setDatePickerOpen(field, isOpen) {
   if (!(field instanceof HTMLElement) || !(input instanceof HTMLInputElement) || !(picker instanceof HTMLElement)) return;
 
   if (isOpen) {
-    const monthKey = normalizeDateKey(field.dataset.dateMonth) || getDatePickerMonthKey(input.value);
+    const monthKey = getDatePickerMonthKey(input.value);
     field.dataset.dateMonth = monthKey;
     picker.innerHTML = renderDatePickerCalendar(input.value, monthKey);
     field.classList.add("is-open");
@@ -8218,6 +8229,27 @@ function shiftDatePickerMonth(field, shift) {
   picker.innerHTML = renderDatePickerCalendar(input.value, field.dataset.dateMonth);
 }
 
+function jumpDatePickerMonth(field) {
+  const picker = field?.querySelector("[data-date-picker]");
+  const input = field?.querySelector("[data-date-value]");
+  const monthSelect = field?.querySelector("[data-date-month]");
+  const yearInput = field?.querySelector("[data-date-year]");
+  if (
+    !(field instanceof HTMLElement) ||
+    !(picker instanceof HTMLElement) ||
+    !(input instanceof HTMLInputElement) ||
+    !(monthSelect instanceof HTMLSelectElement) ||
+    !(yearInput instanceof HTMLInputElement)
+  ) return;
+
+  const month = String(monthSelect.value || "01").padStart(2, "0");
+  const year = String(Math.min(9999, Math.max(1000, Number(yearInput.value || 1000)))).padStart(4, "0");
+  const monthKey = normalizeDateKey(`${year}-${month}-01`);
+  if (!monthKey) return;
+  field.dataset.dateMonth = monthKey;
+  picker.innerHTML = renderDatePickerCalendar(input.value, monthKey);
+}
+
 function selectDatePickerDate(field, dateKey) {
   const normalized = normalizeDateKey(dateKey);
   const input = field?.querySelector("[data-date-value]");
@@ -8228,6 +8260,18 @@ function selectDatePickerDate(field, dateKey) {
   if (label) label.textContent = formatDatePickerLabel(normalized);
   input.dispatchEvent(new Event("change", { bubbles: true }));
   setDatePickerOpen(field, false);
+}
+
+function handleDatePickerChange(event) {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target?.matches("[data-date-month],[data-date-year]")) return;
+  jumpDatePickerMonth(target.closest("[data-date-field]"));
+}
+
+function handleDatePickerInput(event) {
+  const target = event.target instanceof HTMLInputElement ? event.target : null;
+  if (!target?.matches("[data-date-year]") || !/^\d{4}$/.test(target.value)) return;
+  jumpDatePickerMonth(target.closest("[data-date-field]"));
 }
 
 function handleDatePickerClick(event) {
@@ -8992,6 +9036,8 @@ async function deleteRecord(tableKey, recordId) {
 
 function bindEvents() {
   document.addEventListener("click", handleDatePickerClick);
+  document.addEventListener("change", handleDatePickerChange);
+  document.addEventListener("input", handleDatePickerInput);
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") closeDatePickers();
   });

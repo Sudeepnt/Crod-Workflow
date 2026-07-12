@@ -5010,16 +5010,51 @@ select:not([multiple]) {
 
 .date-picker-head {
   display: grid;
-  grid-template-columns: 32px 1fr 32px;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-.date-picker-head strong {
+.date-picker-jump {
+  display: grid;
+  grid-template-columns: minmax(82px, 1fr) 72px;
+  gap: 6px;
+  min-width: 0;
+}
+
+.date-picker-jump select,
+.date-picker-jump input {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid #d8dee8;
+  border-radius: 8px;
+  background: #fff;
   color: var(--text);
-  font-size: 13px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0 8px;
+}
+
+.date-picker-jump select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='m4 6 4 4 4-4' stroke='%235f5f5f' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 12px;
+  padding-right: 24px;
+}
+
+.date-picker-jump input {
   text-align: center;
+}
+
+.date-picker-jump input::-webkit-outer-spin-button,
+.date-picker-jump input::-webkit-inner-spin-button {
+  margin: 0;
 }
 
 .date-picker-head button {
