@@ -1579,7 +1579,7 @@ const jsonColumnDefaults = {
   projects: { custom_fields: {} },
   tasks: { assignees: [], depends_on: [], custom_fields: {} },
   documents: { links: [], related_assets: [], related_events: [], related_transactions: [], tags: [], custom_fields: {} },
-  assets: { custom_fields: {} },
+  assets: { tags: [], custom_fields: {} },
   events: { participants: [], custom_fields: {} },
   transactions: { documents: [], custom_fields: {} },
 };
