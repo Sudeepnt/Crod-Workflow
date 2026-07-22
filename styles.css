@@ -1815,8 +1815,8 @@ select:not([multiple]) {
   background: rgba(237, 233, 254, 0.92);
 }
 
-.attention-event-playtest,
-.records-event-playtest {
+.attention-event-qa-session,
+.records-event-qa-session {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
@@ -1928,15 +1928,15 @@ select:not([multiple]) {
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-document-type-gdd,
-.records-document-type-script {
+.records-document-type-product-requirements,
+.records-document-type-technical-specification {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-document-type-art-bible,
-.records-document-type-storyboard {
+.records-document-type-ux-research,
+.records-document-type-api-documentation {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
@@ -1948,63 +1948,63 @@ select:not([multiple]) {
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-document-type-pitch-deck {
+.records-document-type-roadmap {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
   background: rgba(207, 250, 254, 0.92);
 }
 
-.records-project-type-development,
-.records-project-type-game-development {
+.records-project-type-web-application,
+.records-project-type-website {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-project-type-marketing,
-.records-project-type-art-production {
+.records-project-type-ai-product,
+.records-project-type-saas-platform {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
 }
 
-.records-project-type-acquisition,
-.records-project-type-animation {
+.records-project-type-api-backend,
+.records-project-type-mobile-app {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-project-type-leasing,
-.records-project-type-co-development {
+.records-project-type-internal-tool,
+.records-project-type-client-delivery {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-project-type-infra,
-.records-project-type-prototype {
+.records-project-type-prototype,
+.records-project-type-strategy {
   color: #b45309;
   border-color: rgba(245, 158, 11, 0.24);
   background: rgba(254, 243, 199, 0.92);
 }
 
-.records-project-type-capitalraise,
-.records-project-type-liveops {
+.records-project-type-api-backend,
+.records-project-type-ai-product {
   color: #0d9488;
   border-color: rgba(13, 148, 136, 0.22);
   background: rgba(204, 251, 241, 0.92);
 }
 
-.records-project-type-logistics,
-.records-project-type-client-production {
+.records-project-type-mobile-app,
+.records-project-type-client-delivery {
   color: #ea580c;
   border-color: rgba(234, 88, 12, 0.22);
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-project-type-internal,
-.records-project-type-internal-ip {
+.records-project-type-internal-tool,
+.records-project-type-strategy {
   color: #6b7280;
   border-color: rgba(107, 114, 128, 0.22);
   background: rgba(243, 244, 246, 0.92);
@@ -2028,7 +2028,7 @@ select:not([multiple]) {
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-venture-type-internal-studio {
+.records-venture-type-internal-company {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
@@ -2040,13 +2040,13 @@ select:not([multiple]) {
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-venture-type-publisher {
+.records-venture-type-technology-partner {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-venture-type-partner-studio {
+.records-venture-type-agency {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
@@ -2058,7 +2058,7 @@ select:not([multiple]) {
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-venture-type-contractor-studio {
+.records-venture-type-vendor {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
   background: rgba(207, 250, 254, 0.92);
@@ -2083,7 +2083,7 @@ select:not([multiple]) {
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-people-type-producer,
+.records-people-type-product,
 .records-people-type-partner,
 .records-access-level-partner {
   color: #7c3aed;
@@ -2105,7 +2105,7 @@ select:not([multiple]) {
   background: rgba(207, 250, 254, 0.92);
 }
 
-.records-people-type-publisher {
+.records-people-type-client {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
@@ -2156,67 +2156,67 @@ select:not([multiple]) {
   background: rgba(254, 226, 226, 0.92);
 }
 
-.records-asset-type-game-ip {
+.records-asset-type-web-app {
   color: #2563eb;
   border-color: rgba(37, 99, 235, 0.24);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-asset-type-character {
+.records-asset-type-website {
   color: #16a34a;
   border-color: rgba(22, 163, 74, 0.2);
   background: rgba(220, 252, 231, 0.92);
 }
 
-.records-asset-type-environment {
+.records-asset-type-api {
   color: #7c3aed;
   border-color: rgba(124, 58, 237, 0.22);
   background: rgba(237, 233, 254, 0.92);
 }
 
-.records-asset-type-prop {
+.records-asset-type-mobile-app {
   color: #ec4899;
   border-color: rgba(236, 72, 153, 0.2);
   background: rgba(252, 231, 243, 0.92);
 }
 
-.records-asset-type-animation {
+.records-asset-type-ai-model {
   color: #b45309;
   border-color: rgba(245, 158, 11, 0.24);
   background: rgba(254, 243, 199, 0.92);
 }
 
-.records-asset-type-rig {
+.records-asset-type-dataset {
   color: #0891b2;
   border-color: rgba(8, 145, 178, 0.22);
   background: rgba(207, 250, 254, 0.92);
 }
 
-.records-asset-type-build {
+.records-asset-type-deployment {
   color: #ea580c;
   border-color: rgba(234, 88, 12, 0.22);
   background: rgba(255, 237, 213, 0.92);
 }
 
-.records-asset-type-level {
+.records-asset-type-database {
   color: #1d4ed8;
   border-color: rgba(29, 78, 216, 0.22);
   background: rgba(219, 234, 254, 0.92);
 }
 
-.records-asset-type-ui-kit {
+.records-asset-type-design-system {
   color: #0d9488;
   border-color: rgba(13, 148, 136, 0.22);
   background: rgba(204, 251, 241, 0.92);
 }
 
-.records-asset-type-audio {
+.records-asset-type-document {
   color: #6b7280;
   border-color: rgba(107, 114, 128, 0.22);
   background: rgba(243, 244, 246, 0.92);
 }
 
-.records-asset-type-vfx {
+.records-asset-type-integration {
   color: #dc2626;
   border-color: rgba(220, 38, 38, 0.2);
   background: rgba(254, 226, 226, 0.92);
@@ -2228,7 +2228,7 @@ select:not([multiple]) {
   background: rgba(226, 232, 240, 0.92);
 }
 
-.records-asset-type-art-pack {
+.records-asset-type-tool {
   color: #ca8a04;
   border-color: rgba(202, 138, 4, 0.22);
   background: rgba(254, 249, 195, 0.92);
