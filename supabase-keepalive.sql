@@ -62,7 +62,7 @@ create or replace function public.send_keepalive_ping(
 )
 returns jsonb
 language plpgsql
-security invoker
+security definer
 set search_path = public
 as $$
 declare
