@@ -1,4 +1,4 @@
-# Workflow Tool MVP
+# Crod Workflow Tool
 
 Monochrome internal workflow shell prepared for client-specific branding and data.
 
@@ -19,4 +19,4 @@ Set `supabaseUrl` and `supabasePublishableKey` in `config.js` before logging in.
 
 ## Current state
 
-The previous Supabase project credentials were removed from source. The app now stays disconnected until new Supabase credentials are added to `config.js`.
+The app is connected to the Crod Supabase project through the credentials in `config.js`.

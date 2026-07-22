@@ -173,7 +173,7 @@ function readAppConfigValue(value) {
 const appConfig = globalThis.WORKFLOW_CONFIG ?? {};
 const SUPABASE_URL = readAppConfigValue(appConfig.supabaseUrl);
 const SUPABASE_PUBLISHABLE_KEY = readAppConfigValue(appConfig.supabasePublishableKey);
-const SUPABASE_UNCONFIGURED_MESSAGE = "Supabase is not configured yet. Add the current Gattabara Games client credentials in config.js.";
+const SUPABASE_UNCONFIGURED_MESSAGE = "Supabase is not configured yet. Add the current Crod client credentials in config.js.";
 const APP_TIMEZONE = "Asia/Kolkata";
 const FORM_CONFIG_TABLE = "app_form_configs";
 const FORM_CONFIG_KEY = "default";
@@ -181,10 +181,10 @@ const FORM_CONFIG_VERSION = 1;
 const ADMIN_USERS_TABLE = "admin_users";
 const AUDIT_LOGS_TABLE = "app_audit_logs";
 const KEEPALIVE_TABLE = "app_keepalive_pings";
-const KEEPALIVE_INTERVAL_MS = 2 * 24 * 60 * 60 * 1000;
+const KEEPALIVE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const SHARE_ROUTE_PARAM = "share";
 const REMOTE_TABLE_KEYS = new Set(tables.map((table) => table.key));
-const APP_SESSION_KEY = "gattabara.appAuthenticated";
+const APP_SESSION_KEY = "crod.appAuthenticated";
 const supabaseClientFactory = globalThis.supabase?.createClient ?? null;
 const supabaseClient = SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY && supabaseClientFactory
   ? supabaseClientFactory(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
@@ -194,7 +194,7 @@ const data = {
   ventures: [
     {
       id: "ven_1",
-      name: "Gattabara Games",
+      name: "Crod",
       type: "Internal Studio",
       status: "Active",
       verticals: ["PC", "Console", "Action Adventure"],
@@ -225,9 +225,9 @@ const data = {
       id: "ppl_1",
       name: "Sudeep N",
       type: "Founder",
-      email: "sudeep@gattabara.games",
+      email: "sudeep@crod-workflow.local",
       phone: "9000000001",
-      venture: "Gattabara Games",
+      venture: "Crod",
       role_title: "Founder / Creative Director",
       access_level: "Founder",
       status: "Active",
@@ -236,9 +236,9 @@ const data = {
       id: "ppl_2",
       name: "Utsav",
       type: "Producer",
-      email: "utsav@gattabara.games",
+      email: "utsav@crod-workflow.local",
       phone: "9000000002",
-      venture: "Gattabara Games",
+      venture: "Crod",
       role_title: "Producer",
       access_level: "Partner",
       status: "Active",
@@ -247,9 +247,9 @@ const data = {
       id: "ppl_3",
       name: "Aditya",
       type: "Partner",
-      email: "aditya@gattabara.games",
+      email: "aditya@crod-workflow.local",
       phone: "9000000003",
-      venture: "Gattabara Games",
+      venture: "Crod",
       role_title: "Technical Director",
       access_level: "Partner",
       status: "Active",
@@ -258,9 +258,9 @@ const data = {
       id: "ppl_4",
       name: "Mira Sol",
       type: "Employee",
-      email: "mira@gattabara.games",
+      email: "mira@crod-workflow.local",
       phone: "9000000004",
-      venture: "Gattabara Games",
+      venture: "Crod",
       role_title: "Lead Character Artist",
       access_level: "Employee",
       status: "Active",
@@ -269,9 +269,9 @@ const data = {
       id: "ppl_5",
       name: "Dev Menon",
       type: "Employee",
-      email: "dev@gattabara.games",
+      email: "dev@crod-workflow.local",
       phone: "9000000005",
-      venture: "Gattabara Games",
+      venture: "Crod",
       role_title: "Gameplay Programmer",
       access_level: "Employee",
       status: "Active",
@@ -325,7 +325,7 @@ const data = {
     {
       id: "prj_1",
       name: "Project Emberfall",
-      venture: "Gattabara Games",
+      venture: "Crod",
       vertical: "Action Adventure",
       type: "Game Development",
       stage: "Production",
@@ -338,7 +338,7 @@ const data = {
     {
       id: "prj_2",
       name: "Neon Brawl Launch Assets",
-      venture: "Gattabara Games",
+      venture: "Crod",
       vertical: "Marketing",
       type: "Art Production",
       stage: "Review",
@@ -366,7 +366,7 @@ const data = {
     {
       id: "tsk_1",
       title: "Lock vertical slice combat loop",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       status: "To-Do",
       priority: "High",
@@ -379,7 +379,7 @@ const data = {
     {
       id: "tsk_2",
       title: "Polish forest biome lighting",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       status: "In-Progress",
       priority: "Medium",
@@ -391,7 +391,7 @@ const data = {
     {
       id: "tsk_3",
       title: "Review trailer storyboard",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       status: "Blocked",
       priority: "High",
@@ -415,7 +415,7 @@ const data = {
     {
       id: "tsk_5",
       title: "Tune dodge cancel window",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       parent_task: "Lock vertical slice combat loop",
       status: "To-Do",
@@ -428,7 +428,7 @@ const data = {
     {
       id: "tsk_6",
       title: "Finalize enemy hit reactions",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       parent_task: "Lock vertical slice combat loop",
       status: "Backlog",
@@ -441,7 +441,7 @@ const data = {
     {
       id: "tsk_7",
       title: "Balance moonlit fog pass",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       parent_task: "Polish forest biome lighting",
       status: "In-Progress",
@@ -454,7 +454,7 @@ const data = {
     {
       id: "tsk_8",
       title: "Export LUT variations",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       parent_task: "Polish forest biome lighting",
       status: "To-Do",
@@ -467,7 +467,7 @@ const data = {
     {
       id: "tsk_9",
       title: "Collect publisher feedback",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       parent_task: "Review trailer storyboard",
       status: "Blocked",
@@ -480,7 +480,7 @@ const data = {
     {
       id: "tsk_10",
       title: "Revise trailer shot order",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       parent_task: "Review trailer storyboard",
       status: "To-Do",
@@ -494,14 +494,14 @@ const data = {
   documents: [
     {
       id: "doc_1",
-      title: "Gattabara studio roadmap",
+      title: "Crod studio roadmap",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       type: "Brief",
       body: "Q3 roadmap covering prototype completion, publisher outreach, and vertical slice goals.",
       version: 1,
       status: "Draft",
-      links: ["Gattabara Games"],
+      links: ["Crod"],
       permission: "Internal",
       tags: ["seed"],
     },
@@ -509,7 +509,7 @@ const data = {
       id: "doc_2",
       title: "Emberfall milestone agreement",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       type: "Agreement",
       body: "Milestone alignment for Emberfall vertical slice delivery.",
@@ -523,7 +523,7 @@ const data = {
       id: "doc_3",
       title: "Trailer review notes",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       task: "Review trailer storyboard",
       type: "Report",
@@ -540,7 +540,7 @@ const data = {
       id: "evt_1",
       title: "Weekly studio sync",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       type: "Meeting",
       start: "2026-06-28T09:00",
       end: "2026-06-28T09:30",
@@ -553,7 +553,7 @@ const data = {
       id: "evt_2",
       title: "Publisher feedback call",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       type: "Call",
       start: "2026-06-28T10:00",
@@ -567,7 +567,7 @@ const data = {
       id: "evt_3",
       title: "Trailer storyboard review",
       date: "2026-06-28",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       task: "Review trailer storyboard",
       type: "Review",
@@ -583,7 +583,7 @@ const data = {
     {
       id: "ast_1",
       name: "Emberfall Hero Rig",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       type: "Rig",
       engine: "Maya",
@@ -600,7 +600,7 @@ const data = {
     {
       id: "ast_2",
       name: "Forest Combat Greybox",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Project Emberfall",
       type: "Level",
       engine: "Unity",
@@ -617,7 +617,7 @@ const data = {
     {
       id: "ast_3",
       name: "Neon Brawl Trailer Storyboard",
-      venture: "Gattabara Games",
+      venture: "Crod",
       project: "Neon Brawl Launch Assets",
       type: "Source File",
       engine: "Other",
@@ -1542,9 +1542,9 @@ let remoteRefreshTimeoutId = null;
 let remoteRefreshPromise = null;
 let remoteRealtimeChannel = null;
 const MOBILE_BREAKPOINT = 820;
-const APP_SESSION_USER_KEY = "gattabara.appUserId";
-const APP_KEEPALIVE_KEY = "gattabara.lastKeepalivePingAt";
-const SHARED_NOTE_AUTHOR_PREFIX = "gattabara.sharedNoteAuthor.";
+const APP_SESSION_USER_KEY = "crod.appUserId";
+const APP_KEEPALIVE_KEY = "crod.lastKeepalivePingAt";
+const SHARED_NOTE_AUTHOR_PREFIX = "crod.sharedNoteAuthor.";
 const REMOTE_REFRESH_DEBOUNCE_MS = 350;
 
 const arrayFields = new Set(["verticals", "tags"]);
@@ -2700,7 +2700,7 @@ function scheduleRemoteRefresh(options = {}) {
 function setupSupabaseRealtime() {
   if (!supabaseClient || remoteRealtimeChannel || typeof supabaseClient.channel !== "function") return;
 
-  let channel = supabaseClient.channel("gattabara-realtime");
+  let channel = supabaseClient.channel("crod-realtime");
   tables.forEach((table) => {
     channel = channel.on(
       "postgres_changes",
@@ -2872,7 +2872,7 @@ function getFilteredAndSortedRows(table) {
 
 function clearLegacyWorkflowStorage() {
   try {
-    ["gattabara.localTableCache", "gattabara.localPendingUpserts", "gattabara.localPendingDeletes"].forEach((key) => {
+    ["crod.localTableCache", "crod.localPendingUpserts", "crod.localPendingDeletes"].forEach((key) => {
       globalThis.localStorage?.removeItem(key);
     });
   } catch {
@@ -3476,13 +3476,13 @@ function shouldExpandTreeItem(rootTableKey, parentTableKey, depth, childTableKey
 function getTreeNodeToneClass(tableKey, record) {
   if (tableKey === "people") {
     const ventureName = record?.venture || "";
-    if (!ventureName || ventureName === "Gattabara Games") return "";
+    if (!ventureName || ventureName === "Crod") return "";
     return getVentureTone(ventureName);
   }
 
   if (tableKey === "ventures") {
     const ventureName = record?.name || "";
-    if (!ventureName || ventureName === "Gattabara Games") return "";
+    if (!ventureName || ventureName === "Crod") return "";
     return getVentureTone(ventureName);
   }
 
@@ -4610,7 +4610,7 @@ function renderSharedPasswordGate(error = "") {
   return `
     <div class="shared-page shared-page-auth">
       <section class="shared-auth-card">
-        <div class="shared-brand">Gattabara Games shared page</div>
+        <div class="shared-brand">Crod shared page</div>
         <h1>Password required</h1>
         <p>This shared record is password protected.</p>
         <form data-shared-password-form>
@@ -4686,7 +4686,7 @@ function renderSharedDetailPage() {
     return `
       <div class="shared-page">
         <section class="shared-auth-card">
-          <div class="shared-brand">Gattabara Games shared page</div>
+          <div class="shared-brand">Crod shared page</div>
           <h1>Shared record unavailable</h1>
           <p>The shared record could not be loaded.</p>
         </section>
@@ -4698,7 +4698,7 @@ function renderSharedDetailPage() {
     <div class="shared-page">
       <section class="shared-header">
         <div>
-          <div class="shared-brand">Gattabara Games shared page · Read only</div>
+          <div class="shared-brand">Crod shared page · Read only</div>
           <h1>${escapeHtml(record.name || record.title || table.singular)}</h1>
           <p>${escapeHtml(table.singular)} details, linked records, tree view, and notes.</p>
         </div>
@@ -4734,7 +4734,7 @@ function renderSharedPage() {
     el.heroPanel.innerHTML = `
       <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
-          <div class="shared-brand">Gattabara Games shared page</div>
+          <div class="shared-brand">Crod shared page</div>
           <h1>Loading shared page...</h1>
         </section>
       </div>
@@ -4752,7 +4752,7 @@ function renderSharedPage() {
     el.heroPanel.innerHTML = `
       <div class="shared-page shared-page-auth">
         <section class="shared-auth-card">
-          <div class="shared-brand">Gattabara Games shared page</div>
+          <div class="shared-brand">Crod shared page</div>
           <h1>Shared link unavailable</h1>
           <p>${escapeHtml(state.sharedError)}</p>
         </section>
