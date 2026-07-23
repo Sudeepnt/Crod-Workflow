@@ -1,5 +1,5 @@
 {
-  "name": "workflow",
+  "name": "crod-workflow",
   "private": true,
   "version": "1.0.0",
   "description": "Crod workflow shell",
